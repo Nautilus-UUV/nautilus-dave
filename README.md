@@ -72,45 +72,15 @@ Our fork uses a structured branching model:
 ```
 polaris-ros2 (stable - tracks upstream + Nautilus customizations)
     └── dev (active development - merge feature branches here)
-        ├── feature/new-sensor-integration
-        ├── feature/improved-controller
-        └── feature/your-feature-name
+        └── github_username/feature_name
 ```
 
-### Branch Descriptions
-
-- **`polaris-ros2`**: Stable branch with tested Nautilus customizations
-  - Tracks upstream `IOES-Lab/dave:ros2`
-  - Contains production-ready Glider Nautilus models
-  - Protected branch - requires PR approval
-
-- **`dev`**: Active development branch
-  - Base branch for all new feature development
-  - Integration testing happens here
-  - Periodically merged into `polaris-ros2` after testing
-
-- **`feature/*`**: Individual feature branches
-  - Created from `dev`
-  - One feature per branch
-  - Merged back to `dev` via PR
+> [!NOTE]
+> `dev` contains a [fork sync](.github/workflows/fork-sync.yml) workflow to automatically sync changes from upstream
 
 ## Contributing Workflow
 
-### 1. Set Up Your Development Environment
-
-```bash
-cd ~/dave_ws/src/dave
-
-# Add the upstream IOES-Lab repository (for pulling updates)
-git remote add upstream https://github.com/IOES-Lab/dave.git
-
-# Verify remotes
-git remote -v
-# Should show:
-#   origin    https://github.com/Nautilus-UUV/dave.git
-```
-
-### 2. Create a Feature Branch
+### Create a Feature Branch
 
 ```bash
 # Make sure you're on the dev branch
@@ -120,10 +90,10 @@ git checkout dev
 git pull origin dev
 
 # Create your feature branch
-git checkout -b feature/your-feature-name
+git checkout -b github_username/feature_name
 ```
 
-### 3. Make Your Changes
+### Make Your Changes
 
 Edit files in the appropriate locations:
 
@@ -146,7 +116,7 @@ dave/
 └── ...                             # Other DAVE packages
 ```
 
-### 4. Test Your Changes
+### Test Your Changes
 
 ```bash
 # Rebuild the workspace
@@ -158,87 +128,4 @@ source install/setup.bash
 
 # Test your changes (launch files, simulations, etc.)
 ros2 launch <your_test_commands>
-```
-
-### 5. Commit Your Changes
-
-```bash
-cd ~/dave_ws/src/dave
-
-# Stage your changes
-git add .
-
-# Run pre-commit checks
-pre-commit run --all-files
-
-# Commit with a descriptive message
-git commit -m "feat: add description of your feature"
-
-# Push to your feature branch
-git push origin feature/your-feature-name
-```
-
-### 6. Create a Pull Request
-
-1. Go to [https://github.com/Nautilus-UUV/dave](https://github.com/Nautilus-UUV/dave)
-2. Click "Pull requests" → "New pull request"
-3. Set **base branch** to `dev` (not `polaris-ros2`!)
-4. Set **compare branch** to your `feature/your-feature-name`
-5. Fill in the PR description:
-   - What does this feature add/fix?
-   - How did you test it?
-   - Any breaking changes?
-6. Request review from team members
-7. Address review feedback and update your branch as needed
-
-### 7. After PR is Merged
-
-```bash
-# Switch back to dev
-git checkout dev
-
-# Pull the updated dev branch
-git pull origin dev
-
-# Delete your local feature branch
-git branch -d feature/your-feature-name
-
-# Delete the remote feature branch
-git push origin --delete feature/your-feature-name
-```
-
-## Commit Message Conventions
-
-Follow conventional commits format:
-
-- `feat: add new buoyancy model` - New feature
-- `fix: correct thruster orientation` - Bug fix
-- `docs: update installation instructions` - Documentation
-- `refactor: simplify sensor configuration` - Code refactoring
-- `test: add integration test for controller` - Tests
-- `chore: update dependencies` - Maintenance tasks
-
-## Syncing with Upstream DAVE
-
-Periodically pull updates from the upstream IOES-Lab/dave repository:
-
-```bash
-# Checkout polaris-ros2
-git checkout polaris-ros2
-
-# Fetch upstream changes
-git fetch upstream
-
-# Merge upstream ros2 into polaris-ros2
-git merge upstream/ros2
-
-# Resolve any conflicts if they occur
-
-# Push updated polaris-ros2
-git push origin polaris-ros2
-
-# Update dev branch with the new changes
-git checkout dev
-git merge polaris-ros2
-git push origin dev
 ```
