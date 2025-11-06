@@ -1,8 +1,7 @@
-name: Fork Sync
-
+name: Sync Fork
 on:
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
 jobs:
@@ -11,6 +10,6 @@ jobs:
     steps:
       - uses: tgymnich/fork-sync@v2.0
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          upstream: https://github.com/IOES-Lab/dave.git
-          branches: '*'
+          owner: IOES-Lab  # Owner of the upstream repo
+          head: ros2        # Branch from upstream
+          base: dev        # Branch in your fork to update
