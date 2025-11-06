@@ -1,0 +1,16 @@
+name: Fork Sync
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: tgymnich/fork-sync@v2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          upstream: https://github.com/IOES-Lab/dave.git
+          branches: '*'
