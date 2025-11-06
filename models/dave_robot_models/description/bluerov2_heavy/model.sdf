@@ -165,8 +165,9 @@
             <maxDistance>10</maxDistance>
             <raySkips>10</raySkips>
             <sensorGain>0.02</sensorGain>
-            <writeLog>true</writeLog>
-            <debugFlag>true</debugFlag>
+            <blazingSonarImage>true</blazingSonarImage>
+            <writeLog>false</writeLog>
+            <debugFlag>false</debugFlag>
             <writeFrameInterval>5</writeFrameInterval>
             <!-- ROS publication topics -->
             <pointCloudTopicName>point_cloud</pointCloudTopicName>
