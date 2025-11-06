@@ -28,9 +28,24 @@ rm -rf dave
 
 # Clone the Nautilus fork with the dev branch
 git clone -b dev https://github.com/Nautilus-UUV/dave.git
+```
 
+Source your ros2 and correspondic gazebo versions:
+
+```bash
+# Source ros2 jazzy and gazebo harmonic
+source /opt/ros/jazzy/setup.bash
+source /opt/gazebo/install/setup.bash && export PYTHONPATH=$PYTHONPATH:/opt/gazebo/install/lib/python
+```
+
+Build custom dave:
+
+```bash
 # Navigate back to workspace root
 cd ~/dave_ws
+
+# Remove any existing build artifacts
+rm -rf build/ install/ log/
 
 # Rebuild the workspace with Nautilus customizations
 colcon build --symlink-install
@@ -38,6 +53,17 @@ colcon build --symlink-install
 # Source the workspace
 source install/setup.bash
 ```
+
+**Optional:**
+Add to .bashrc_aliases to source dave by running `dave`:
+```bash
+alias jazzy='source /opt/ros/jazzy/setup.bash'
+alias harmonic='source /opt/gazebo/install/setup.bash && export PYTHONPATH=$PYTHONPATH:/opt/gazebo/install/lib/python'
+alias dave='jazzy && harmonic && source ~/dave_ws/install/setup.bash'
+```
+
+> [!NOTE]
+> That's right, we don't technically need to follow the DAVE installation since we are deleting it and rebuilding it. All that is needed is a working ros2 and corresponding gazebo version.
 
 ## Branch Structure
 
