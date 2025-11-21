@@ -1,0 +1,381 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <model name="glider_nautilus">
+
+    <static>false</static>
+    <link name="base_link">
+      <inertial>
+        <pose>0 0 -3 0 0 0</pose>
+        <mass>69.25</mass>
+        <inertia>
+          <ixx>13.193856</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.418962</iyy>
+          <iyz>0</iyz>
+          <izz>13.193856</izz>
+        </inertia>
+      </inertial>
+
+      <visual name="base_link_visual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.5 0.5 0.5</scale>
+            <uri>model://meshes/glider_nautilus/Nautilus-Glider.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+
+      <collision name="base_link_collision">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <!-- <mesh>
+            <scale>0.5 0.5 0.5</scale>
+            <uri>model://meshes/glider_nautilus/COLLISION-Nautilus-Glider.dae</uri>
+          </mesh> -->
+          <box>
+            <size>0.22 1.5 0.22</size>
+          </box>
+        </geometry>
+      </collision>
+    </link>
+
+    <link name="LeftFin_link">
+      <visual name="LeftFin_link_visual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.5 0.5 0.5</scale>
+            <uri>model://meshes/glider_nautilus/Nautilus-Glider-LeftFin.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+      </inertial>
+    </link>
+
+    <joint name="LeftFin_joint" type="fixed">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>LeftFin_link</child>
+    </joint>
+
+    <plugin
+      filename="gz-sim-lift-drag-system"
+      name="gz::sim::systems::LiftDrag">
+      <air_density>1025</air_density>
+      <cla>4.13</cla>
+      <cla_stall>-1.1</cla_stall>
+      <cda>0.2</cda>
+      <cda_stall>0.03</cda_stall>
+      <alpha_stall>0.17</alpha_stall>
+      <a0>0</a0>
+      <area>0.0244</area>
+      <upward>0 0 1</upward>
+      <forward>1 0 0</forward>
+      <link_name>LeftFin_link</link_name>
+      <cp>0 0 0</cp>
+    </plugin>
+
+    <link name="RightFin_link">
+      <visual name="RightFin_link_visual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.5 0.5 0.5</scale>
+            <uri>model://meshes/glider_nautilus/Nautilus-Glider-RightFin.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+      </inertial>
+    </link>
+
+    <joint name="RightFin_joint" type="fixed">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>RightFin_link</child>
+    </joint>
+
+    <plugin
+      filename="gz-sim-lift-drag-system"
+      name="gz::sim::systems::LiftDrag">
+      <air_density>1025</air_density>
+      <cla>4.13</cla>
+      <cla_stall>-1.1</cla_stall>
+      <cda>0.2</cda>
+      <cda_stall>0.03</cda_stall>
+      <alpha_stall>0.17</alpha_stall>
+      <a0>0</a0>
+      <area>0.0244</area>
+      <upward>0 0 1</upward>
+      <forward>1 0 0</forward>
+      <link_name>RightFin_link</link_name>
+      <cp>0 0 0</cp>
+    </plugin>
+
+    <link name="TopRudder_link">
+      <visual name="TopRudder_link_visual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.5 0.5 0.5</scale>
+            <uri>model://meshes/glider_nautilus/Nautilus-Glider-TopRudder.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+      </inertial>
+    </link>
+
+    <joint name="TopRudder_joint" type="revolute">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>TopRudder_link</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>
+
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>TopRudder_joint</joint_name>
+      <p_gain>0.1</p_gain>
+    </plugin>
+
+    <plugin
+      filename="gz-sim-lift-drag-system"
+      name="gz::sim::systems::LiftDrag">
+      <air_density>1000</air_density>
+      <cla>4.13</cla>
+      <cla_stall>-1.1</cla_stall>
+      <cda>0.2</cda>
+      <cda_stall>0.03</cda_stall>
+      <alpha_stall>0.17</alpha_stall>
+      <a0>0</a0>
+      <area>0.0244</area>
+      <upward>0 1 0</upward>
+      <forward>1 0 0</forward>
+      <link_name>TopRudder_link</link_name>
+      <cp>0 0 0</cp>
+    </plugin>
+
+    <link name="bladder_link">
+      <!-- Pose of bladder link in base link frame-->
+      <pose>0 0.3 0 0 0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+      </inertial>
+      <visual name="bladder_link_visual">
+        <geometry>
+          <sphere>
+            <radius>0.2</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <ambient>0 0 1 1</ambient>
+          <diffuse>0 0 1 0.5</diffuse>
+          <specular>0 0 1 0.5</specular>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="bladder_joint" type="fixed">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>bladder_link</child>
+    </joint>
+
+    <plugin
+      filename="gz-sim-buoyancy-engine-system"
+      name="gz::sim::systems::BuoyancyEngine">
+      <link_name>bladder_link</link_name>
+      <max_inflation_rate>0.0001</max_inflation_rate>
+      <max_volume>0.01</max_volume>
+      <neutral_volume>0.002</neutral_volume>
+      <surface>0</surface>
+      <namespace>glider_nautilus</namespace>
+    </plugin>
+
+    <link name="imu_link">
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>0.015</mass>
+        <inertia>
+          <ixx>0.00001</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>0.00001</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.00001</izz>
+        </inertia>
+      </inertial>
+      <sensor name="imu_sensor" type="imu">
+        <always_on>true</always_on>
+        <update_rate>50.0</update_rate>
+        <topic>/model/glider_nautilus/imu</topic>
+      </sensor>
+    </link>
+
+    <joint name="imu_joint" type="fixed">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>imu_link</child>
+    </joint>
+
+    <link name='battery_link'>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>0.001</mass>
+        <inertia>
+          <ixx>1e-05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>1e-05</iyy>
+          <iyz>0</iyz>
+          <izz>1e-05</izz>
+        </inertia>
+      </inertial>
+      <battery name='battery'>
+        <voltage>4.2</voltage>
+      </battery>
+    </link>
+
+    <joint name='battery_joint' type='fixed'>
+      <pose>0 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>battery_link</child>
+    </joint>
+
+    <plugin
+      filename="gz-sim-linearbatteryplugin-system"
+      name="gz::sim::systems::LinearBatteryPlugin">
+      <battery_name>battery</battery_name>
+      <voltage>4.2</voltage>
+      <open_circuit_voltage_constant_coef>3.7</open_circuit_voltage_constant_coef>
+      <open_circuit_voltage_linear_coef>-3.1424</open_circuit_voltage_linear_coef>
+      <initial_charge>4.32</initial_charge>
+      <capacity>4.8</capacity>
+      <resistance>0.002</resistance>
+      <smooth_current_tau>1.9499</smooth_current_tau>
+      <enable_recharge>false</enable_recharge>
+      <power_load>10</power_load>
+      <start_on_motion>true</start_on_motion>
+    </plugin>
+
+    <link name="navsat_link">
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <mass>0.001</mass>
+        <inertia>
+          <ixx>0.00001</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>0.00001</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.00001</izz>
+        </inertia>
+      </inertial>
+
+      <sensor name="navsat_sensor" type="navsat">
+        <always_on>true</always_on>
+        <update_rate>30.0</update_rate>
+        <topic>/model/glider_nautilus/navsat</topic>
+      </sensor>
+    </link>
+
+    <joint name="navsat_joint" type="fixed">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>navsat_link</child>
+    </joint>
+
+    <plugin
+      filename="gz-sim-hydrodynamics-system"
+      name="gz::sim::systems::Hydrodynamics">
+      <link_name>base_link</link_name>
+      <water_density>1025.0</water_density>
+      <!-- Added mass -->
+      <xDotU>0</xDotU>
+      <yDotV>0</yDotV>
+      <zDotW>0</zDotW>
+      <kDotP>0</kDotP>
+      <mDotQ>0</mDotQ>
+      <nDotR>0</nDotR>
+      <!-- <xDotU>4</xDotU>
+      <yDotV>95</yDotV>
+      <zDotW>75</zDotW>
+      <kDotP>0.4</kDotP>
+      <mDotQ>27</mDotQ>
+      <nDotR>32</nDotR> -->
+
+      <!-- Linear Drag Coefficients -->
+      <!-- diagonal terms -->
+      <xU>-8</xU>
+      <yV>-162</yV>
+      <zW>-108</zW>
+      <kP>-13</kP>
+      <mQ>-20</mQ>
+      <nR>-32</nR>
+      <!-- cross terms -->
+      <!-- <yR>150</yR>
+      <zQ>-100</zQ>
+      <mW>37</mW>
+      <nV>-34</nV-->
+
+      <!-- Quadratic Drag Coefficients -->
+      <xUabsU>0</xUabsU>
+      <yVabsV>0</yVabsV>
+      <zWabsW>0</zWabsW>
+      <kPabsP>0</kPabsP>
+      <mQabsQ>0</mQabsQ>
+      <nRabsR>0</nRabsR>
+    </plugin>
+
+    <plugin
+      filename="gz-sim-imu-system"
+      name="gz::sim::systems::Imu">
+    </plugin>
+
+    <plugin
+      filename="gz-sim-navsat-system"
+      name="gz::sim::systems::NavSat">
+    </plugin>
+
+    <plugin
+      filename="gz-sim-odometry-publisher-system"
+      name="gz::sim::systems::OdometryPublisher">
+      <odom_frame>map</odom_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+      <dimensions>3</dimensions>
+      <odom_publish_frequency>100</odom_publish_frequency>
+    </plugin>
+
+    <plugin
+      filename="gz-sim-joint-state-publisher-system"
+      name="gz::sim::systems::JointStatePublisher">
+    </plugin>
+
+    <!-- Sea Pressure Sensor Plugin -->
+    <plugin
+      filename="sea_pressure_sensor"
+      name=" dave_gz_sensor_plugins::SubseaPressureSensorPlugin">
+      <namespace>glider_nautilus</namespace>
+      <topic>sea_pressure</topic>
+      <update_rate>10</update_rate>
+      <noise_sigma>3.0</noise_sigma>
+      <estimate_depth_on>true</estimate_depth_on>
+      <standard_pressure>101.325</standard_pressure>
+      <kPa_per_meter>9.80638</kPa_per_meter>
+    </plugin>
+
+  </model>
+</sdf>
