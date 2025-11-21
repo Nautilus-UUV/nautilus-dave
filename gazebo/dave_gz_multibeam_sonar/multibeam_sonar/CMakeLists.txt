@@ -1,24 +1,28 @@
 cmake_minimum_required(VERSION 3.11.0 FATAL_ERROR)
 
 # Suppress developer warnings for the entire workspace.
+
 set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS TRUE CACHE BOOL
     "Suppress developer warnings" FORCE)
 # Set CMP0144 to NEW to ensure find_package
 # uses upper-case <PACKAGENAME>_ROOT variables.
+
 cmake_policy(SET CMP0144 NEW)
 
 project(multibeam_sonar)
+
+set(CUDA_ARCHITECTURE "60" CACHE STRING "Target CUDA SM version")
 
 find_package(ament_cmake REQUIRED)
 find_package(CUDAToolkit QUIET)
 
 if(CUDAToolkit_FOUND)
+
   enable_language(CUDA)
   find_package(CUDA REQUIRED)
   message(STATUS "CUDA found, enabling CUDA support.")
   include_directories(${CUDA_INCLUDE_DIRS})
-  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -arch=sm_60")
-
+  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -arch=sm_${CUDA_ARCHITECTURE}")
   find_package(gz-cmake3 REQUIRED)
   find_package(gz-sim8 REQUIRED)
   find_package(gz-sensors8 REQUIRED)
@@ -28,17 +32,10 @@ if(CUDAToolkit_FOUND)
   find_package(sensor_msgs REQUIRED)
   find_package(geometry_msgs REQUIRED)
   find_package(rosidl_default_generators REQUIRED)
-  find_package(PCL REQUIRED)
-  find_package(pcl_conversions REQUIRED)
   find_package(OpenCV REQUIRED)
   find_package(marine_acoustic_msgs REQUIRED)
   find_package(cv_bridge REQUIRED)
 
-  include_directories(${PCL_INCLUDE_DIRS})
-  link_directories(${PCL_LIBRARY_DIRS})
-  add_definitions(${PCL_DEFINITIONS})
-
-  # Set version variables
   set(GZ_MSGS_VER ${gz-msgs10_VERSION_MAJOR})
   set(GZ_RENDERING_VER ${gz-rendering8_VERSION_MAJOR})
   set(GZ_SENSORS_VER ${gz-sensors8_VERSION_MAJOR})
@@ -64,7 +61,9 @@ if(CUDAToolkit_FOUND)
   )
 
   set_target_properties(${PROJECT_NAME}
-                          PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+  )
 
   target_include_directories(${PROJECT_NAME}
     PUBLIC
@@ -76,11 +75,17 @@ if(CUDAToolkit_FOUND)
     ${gz-sim${GZ_SIM_VER}_INCLUDE_DIRS}
   )
 
+  find_library(CUBLAS_LIB cublas
+    HINTS ${CUDAToolkit_LIBRARY_DIR} /usr/local/cuda/lib64 /usr/lib/x86_64-linux-gnu /usr/lib)
+  if(NOT CUBLAS_LIB)
+    message(FATAL_ERROR "cuBLAS not found")
+  endif()
+
   target_link_libraries(${PROJECT_NAME}
-  ${PCL_LIBRARIES}
-  ${CUDA_LIBRARIES}
-  ${CUDA_CUFFT_LIBRARIES}
-  ${CUBLAS_LIB})
+    ${CUDA_LIBRARIES}
+    ${CUDA_CUFFT_LIBRARIES}
+    ${CUBLAS_LIB}
+  )
 
   install(TARGETS ${PROJECT_NAME}
     DESTINATION lib/${PROJECT_NAME}
@@ -95,22 +100,18 @@ if(CUDAToolkit_FOUND)
     rclcpp
     sensor_msgs
     rosidl_default_generators
-    PCL
-    pcl_conversions
     OpenCV
     marine_acoustic_msgs
     geometry_msgs
     cv_bridge
   )
 
-
-  # Environment hooks
   ament_environment_hooks(
     "${CMAKE_CURRENT_SOURCE_DIR}/hooks/${PROJECT_NAME}.dsv.in"
   )
 
 else()
-  message(STATUS "CUDA Toolkit not found: Skipping CUDA-specific targets")
+  message(STATUS "CUDA Toolkit not found or disabled: Skipping CUDA-specific targets")
 endif()
 
 ament_package()

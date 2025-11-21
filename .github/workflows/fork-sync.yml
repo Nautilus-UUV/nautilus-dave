@@ -1,0 +1,31 @@
+name: Fork Sync
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          fetch-depth: 0
+      
+      - name: Sync dev branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Add upstream
+          git remote add upstream https://github.com/IOES-Lab/dave.git
+          git fetch upstream
+          
+          # Merge upstream ros2 into your dev
+          git merge upstream/ros2 --no-edit
+          
+          # Push to your fork
+          git push origin dev

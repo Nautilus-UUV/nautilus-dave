@@ -160,6 +160,9 @@ private:
     int ray_nElevationRays;
     float * rangeVector;
 
+    // Sonar image parameters
+    bool blazingFlag;
+
     // Debug flags and reflectivity
     bool debugFlag;
     bool constMu;
