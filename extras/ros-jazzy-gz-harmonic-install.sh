@@ -88,6 +88,7 @@ sudo apt update && apt install -y \
     ros-$DIST-ros2-controllers \
     ros-$DIST-teleop-tools \
     ros-$DIST-urdfdom-py \
+    ros-$DIST-marine-acoustic-msgs \
     ros-dev-tools
 
 echo
