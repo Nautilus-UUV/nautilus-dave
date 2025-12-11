@@ -32,8 +32,8 @@
           <izz>10.32</izz>
         </inertia> -->
 
-        <pose>0 0.52 -0.00768 0 0 0</pose>
-        <mass>58.845</mass>
+        <pose>0 0.528 -0.00768 0 0 0</pose>
+        <mass>58.245</mass>
         <inertia>
           <ixx>10.24</ixx>
           <ixy>-0.004930</ixy>
@@ -112,12 +112,12 @@
 
       <!-- Linear Drag Coefficients -->
       <!-- diagonal terms -->
-      <xU>-8</xU>
-      <yV>-162</yV>
-      <zW>-108</zW>
-      <kP>-13</kP>
-      <mQ>-20</mQ>
-      <nR>-32</nR>
+      <xU>-108</xU>
+      <yV>-8</yV>
+      <zW>-162</zW>
+      <kP>-32</kP>
+      <mQ>-13</mQ>
+      <nR>-20</nR>
       <!-- cross terms -->
       <!-- <yR>150</yR>
       <zQ>-100</zQ>
@@ -412,8 +412,8 @@
       <max_inflation_rate>0.0001</max_inflation_rate>
       <min_volume>0.0</min_volume>
       <max_volume>0.0025</max_volume>
-      <neutral_volume>0.00</neutral_volume>
-      <default_volume>0.00125</default_volume>
+      <neutral_volume>0.0</neutral_volume>
+      <default_volume>0.0</default_volume>
       <fluid_density>1025.0</fluid_density>
       <surface>0</surface>
       <namespace>glider_nautilus</namespace>
