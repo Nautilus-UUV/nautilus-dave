@@ -387,6 +387,15 @@ bool MultibeamSonarSensor::Implementation::InitializeBeamArrangement(MultibeamSo
     sensorElement->Get<std::string>("frameName", "forward_sonar_optical_link").first;
   gzmsg << "frameName: " << this->frameName << std::endl;
 
+  this->frameId = _sensor->FrameId();
+  size_t pos = 0;
+  while ((pos = this->frameId.find("::", pos)) != std::string::npos)
+  {
+    this->frameId.replace(pos, 2, "/");
+    pos += 1;
+  }
+  gzmsg << "frameId: " << this->frameId << std::endl;
+
   // ROS Initialization
 
   if (!rclcpp::ok())
@@ -395,6 +404,7 @@ bool MultibeamSonarSensor::Implementation::InitializeBeamArrangement(MultibeamSo
   }
 
   this->ros_node_ = std::make_shared<rclcpp::Node>("multibeam_sonar_node");
+  this->ros_node_->set_parameters({rclcpp::Parameter("use_sim_time", true)});
 
   // Create the point cloud publisher
   this->pointPub = this->node.Advertise<gz::msgs::PointCloudPacked>(
@@ -1156,7 +1166,7 @@ void MultibeamSonarSensor::Implementation::ComputeSonarImage()
 
   rclcpp::Time now = this->ros_node_->now();
 
-  this->sonarRawDataMsg.header.frame_id = this->frameName;
+  this->sonarRawDataMsg.header.frame_id = this->frameId;
 
   this->sonarRawDataMsg.header.stamp.sec = static_cast<int32_t>(now.seconds());
   this->sonarRawDataMsg.header.stamp.nanosec =
@@ -1193,22 +1203,22 @@ void MultibeamSonarSensor::Implementation::ComputeSonarImage()
   this->sonarRawDataMsg.ranges = ranges;
   marine_acoustic_msgs::msg::SonarImageData sonar_image_data;
   sonar_image_data.is_bigendian = false;
-  sonar_image_data.dtype = 0;  // DTYPE_UINT8
+  sonar_image_data.dtype = marine_acoustic_msgs::msg::SonarImageData::DTYPE_FLOAT32;
   sonar_image_data.beam_count = this->nBeams;
   // this->sonar_image_raw_msg_.data_size = 1;  // sizeof(float) * nFreq * nBeams;
-  std::vector<uchar> intensities;
+  std::vector<float> intensities;
   int Intensity[this->nBeams][this->nFreq];
 
-  for (size_t f = 0; f < this->nFreq; f++)
+  for (size_t r = 0; r < P_Beams[0].size(); r++)
   {
     for (size_t beam = 0; beam < this->nBeams; beam++)
     {
-      Intensity[beam][f] = static_cast<int>(this->sensorGain * abs(P_Beams[beam][f]));
-      uchar counts = static_cast<uchar>(std::min(UCHAR_MAX, Intensity[beam][f]));
-      intensities.push_back(counts);
+      float power_dB = 20.0f * log10(std::abs(P_Beams[beam][r]));
+      intensities.push_back(power_dB);
     }
   }
-  sonar_image_data.data = intensities;
+  sonar_image_data.data.resize(intensities.size() * sizeof(float));
+  memcpy(sonar_image_data.data.data(), intensities.data(), intensities.size() * sizeof(float));
   this->sonarRawDataMsg.image = sonar_image_data;
   this->sonarImageRawPub->publish(this->sonarRawDataMsg);
 
