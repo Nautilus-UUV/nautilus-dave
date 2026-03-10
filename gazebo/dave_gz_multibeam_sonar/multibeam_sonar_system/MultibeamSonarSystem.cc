@@ -139,6 +139,11 @@ public:
 public:
   void Handle(requests::SetEnvironmentalData _request);
 
+  /// \brief Create a MultibeamSonarSensor sensor.
+  bool RequestCreateSensor(
+    const gz::sim::Entity & _entity, const gz::sim::components::CustomSensor * _custom,
+    const gz::sim::components::ParentEntity * _parent, gz::sim::EntityComponentManager & _ecm);
+
   /// \brief Implementation for Configure() hook.
 public:
   void DoConfigure(
@@ -252,10 +257,58 @@ using namespace gz;
 using namespace sim;
 using namespace systems;
 
+bool MultibeamSonarSystem::Implementation::RequestCreateSensor(
+  const gz::sim::Entity & _entity, const gz::sim::components::CustomSensor * _custom,
+  const gz::sim::components::ParentEntity * _parent, gz::sim::EntityComponentManager & _ecm)
+{
+  using namespace gz::sim;
+  // Get sensor's scoped name without the world
+  std::string sensorScopedName = removeParentScope(scopedName(_entity, _ecm, "::", false), "::");
+
+  // Check sensor's type before proceeding
+  sdf::Sensor sdf = _custom->Data();
+  sdf::ElementPtr root = sdf.Element();
+  if (!root->HasAttribute("gz:type"))
+  {
+    gzmsg << "No 'gz:type' attribute in custom sensor "
+          << "[" << sensorScopedName << "]. Ignoring." << std::endl;
+    return true;
+  }
+  auto type = root->Get<std::string>("gz:type");
+  if (type != "multibeam_sonar")
+  {
+    gzdbg << "Found custom sensor [" << sensorScopedName << "]"
+          << " of '" << type << "' type. Ignoring." << std::endl;
+    return true;
+  }
+  gzdbg << "Found custom sensor [" << sensorScopedName << "]"
+        << " of '" << type << "' type!" << std::endl;
+
+  sdf.SetName(sensorScopedName);
+
+  if (sdf.Topic().empty())
+  {
+    // Default to scoped name as topic
+    sdf.SetTopic(scopedName(_entity, _ecm) + "/multibeam_sonar/velocity");
+  }
+
+  auto parentName = _ecm.Component<components::Name>(_parent->Data());
+
+  enableComponent<components::WorldPose>(_ecm, _entity);
+  enableComponent<components::WorldAngularVelocity>(_ecm, _entity);
+  enableComponent<components::WorldLinearVelocity>(_ecm, _entity);
+
+  this->perStepRequests.push_back(
+    requests::CreateSensor{sdf, _entity, _parent->Data(), parentName->Data()});
+
+  this->knownSensorEntities.insert(_entity);
+  return true;
+}
+
 //////////////////////////////////////////////////
 void MultibeamSonarSystem::Implementation::DoConfigure(
   const gz::sim::Entity &, const std::shared_ptr<const sdf::Element> &,
-  gz::sim::EntityComponentManager &, gz::sim::EventManager & _eventMgr)
+  gz::sim::EntityComponentManager & _ecm, gz::sim::EventManager & _eventMgr)
 {
   this->preRenderConn =
     _eventMgr.Connect<gz::sim::events::PreRender>(std::bind(&Implementation::OnPreRender, this));
@@ -270,6 +323,12 @@ void MultibeamSonarSystem::Implementation::DoConfigure(
     std::bind(&Implementation::OnRenderTeardown, this));
 
   this->eventMgr = &_eventMgr;
+
+  _ecm.EachNew<gz::sim::components::CustomSensor, gz::sim::components::ParentEntity>(
+    [&](
+      const gz::sim::Entity & _entity, const gz::sim::components::CustomSensor * _custom,
+      const gz::sim::components::ParentEntity * _parent) -> bool
+    { return this->RequestCreateSensor(_entity, _custom, _parent, _ecm); });
 }
 
 //////////////////////////////////////////////////
@@ -299,51 +358,7 @@ void MultibeamSonarSystem::Implementation::DoPreUpdate(
     [&](
       const gz::sim::Entity & _entity, const gz::sim::components::CustomSensor * _custom,
       const gz::sim::components::ParentEntity * _parent) -> bool
-    {
-      using namespace gz::sim;
-      // Get sensor's scoped name without the world
-      std::string sensorScopedName =
-        removeParentScope(scopedName(_entity, _ecm, "::", false), "::");
-
-      // Check sensor's type before proceeding
-      sdf::Sensor sdf = _custom->Data();
-      sdf::ElementPtr root = sdf.Element();
-      if (!root->HasAttribute("gz:type"))
-      {
-        gzmsg << "No 'gz:type' attribute in custom sensor "
-              << "[" << sensorScopedName << "]. Ignoring." << std::endl;
-        return true;
-      }
-      auto type = root->Get<std::string>("gz:type");
-      if (type != "multibeam_sonar")
-      {
-        gzdbg << "Found custom sensor [" << sensorScopedName << "]"
-              << " of '" << type << "' type. Ignoring." << std::endl;
-        return true;
-      }
-      gzdbg << "Found custom sensor [" << sensorScopedName << "]"
-            << " of '" << type << "' type!" << std::endl;
-
-      sdf.SetName(sensorScopedName);
-
-      if (sdf.Topic().empty())
-      {
-        // Default to scoped name as topic
-        sdf.SetTopic(scopedName(_entity, _ecm) + "/multibeam_sonar/velocity");
-      }
-
-      auto parentName = _ecm.Component<components::Name>(_parent->Data());
-
-      enableComponent<components::WorldPose>(_ecm, _entity);
-      enableComponent<components::WorldAngularVelocity>(_ecm, _entity);
-      enableComponent<components::WorldLinearVelocity>(_ecm, _entity);
-
-      this->perStepRequests.push_back(
-        requests::CreateSensor{sdf, _entity, _parent->Data(), parentName->Data()});
-
-      this->knownSensorEntities.insert(_entity);
-      return true;
-    });
+    { return this->RequestCreateSensor(_entity, _custom, _parent, _ecm); });
 }
 
 //////////////////////////////////////////////////
