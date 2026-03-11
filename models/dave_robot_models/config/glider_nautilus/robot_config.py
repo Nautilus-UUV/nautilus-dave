@@ -17,6 +17,8 @@ def launch_setup(context, *args, **kwargs):
         f"/model/{namespace}/odometry_with_covariance@nav_msgs/msg/Odometry@gz.msgs.OdometryWithCovariance",
         f"/model/{namespace}/pose@geometry_msgs/msg/PoseArray@gz.msgs.Pose_V",
         f"/model/{namespace}/imu@sensor_msgs/msg/Imu@gz.msgs.IMU",
+        f"/model/{namespace}/buoyancy_engine@std_msgs/msg/Float64@gz.msgs.Double",
+        f"/model/{namespace}/buoyancy_engine/current_volume@std_msgs/msg/Float64@gz.msgs.Double",
         f"/world/oceans_waves/model/{namespace}/joint_state@sensor_msgs/msg/JointState@gz.msgs.Model"
     ]
 
