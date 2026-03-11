@@ -159,10 +159,10 @@ RUN echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc && \
     echo "source $DAVE_UNDERLAY/install/setup.bash" >> ~/.bashrc && \
     echo "export GEOGRAPHICLIB_GEOID_PATH=/usr/local/share/GeographicLib/geoids" >> ~/.bashrc && \
     echo "export PYTHONPATH=\$PYTHONPATH:/opt/gazebo/install/lib/python" >> ~/.bashrc && \
-    echo "export PATH=/home/$USER/ardupilot_ws/ardupilot/Tools/autotest:\$PATH" >> ~/.bashrc && \
-    echo "export PATH=/home/$USER/ardupilot_ws/ardupilot/build/sitl/bin:\$PATH" >> ~/.bashrc && \
-    echo "export GZ_SIM_SYSTEM_PLUGIN_PATH=/home/$USER/ardupilot_ws/ardupilot_gazebo/build:\$GZ_SIM_SYSTEM_PLUGIN_PATH" >> ~/.bashrc && \
-    echo "export GZ_SIM_RESOURCE_PATH=/home/$USER/ardupilot_ws/ardupilot_gazebo/models:/home/$USER/ardupilot_ws/ardupilot_gazebo/worlds:\$GZ_SIM_RESOURCE_PATH" >> ~/.bashrc && \
+    echo "export PATH=/home/$USER/ardusub_ws/ardupilot/Tools/autotest:\$PATH" >> ~/.bashrc && \
+    echo "export PATH=/home/$USER/ardusub_ws/ardupilot/build/sitl/bin:\$PATH" >> ~/.bashrc && \
+    echo "export GZ_SIM_SYSTEM_PLUGIN_PATH=/home/$USER/ardusub_ws/ardupilot_gazebo/build:\$GZ_SIM_SYSTEM_PLUGIN_PATH" >> ~/.bashrc && \
+    echo "export GZ_SIM_RESOURCE_PATH=/home/$USER/ardusub_ws/ardupilot_gazebo/models:/home/$USER/ardusub_ws/ardupilot_gazebo/worlds:\$GZ_SIM_RESOURCE_PATH" >> ~/.bashrc && \
     echo "\n\n" >> ~/.bashrc && echo "if [ -d ~/HOST ]; then chown $USER:$USER ~/HOST; fi" >> ~/.bashrc  && \
     echo "export PS1='\[\e[1;36m\]\u@DAVE_docker\[\e[0m\]\[\e[1;34m\](\$(hostname | cut -c1-12))\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ '" >>  ~/.bashrc
 
