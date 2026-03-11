@@ -54,7 +54,7 @@ RUN bash install.sh
 RUN apt-get update && \
     apt-get -y install --no-install-recommends ros-jazzy-mavros* \
     && rm -rf /tmp/*
-WORKDIR /opt/mavros_ws
+WORKDIR /tmp
 RUN wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh && \
     bash ./install_geographiclib_datasets.sh
 
