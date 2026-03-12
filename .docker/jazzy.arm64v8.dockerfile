@@ -111,7 +111,7 @@ RUN wget https://packages.osrfoundation.org/gazebo.gpg -O /usr/share/keyrings/pk
 RUN apt-get update && \
     apt-get -y install --no-install-recommends ros-jazzy-mavros* \
     && rm -rf /tmp/*
-WORKDIR /opt/mavros_ws
+WORKDIR /tmp
 RUN wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh && \
     bash ./install_geographiclib_datasets.sh
 
@@ -154,8 +154,6 @@ RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" && colcon build
 # Set User as user
 USER docker
 RUN echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc && \
-    echo "source /opt/gazebo/install/setup.bash" >> ~/.bashrc && \
-    echo "source /opt/mavros/install/setup.bash" >> ~/.bashrc && \
     echo "source $DAVE_UNDERLAY/install/setup.bash" >> ~/.bashrc && \
     echo "export GEOGRAPHICLIB_GEOID_PATH=/usr/local/share/GeographicLib/geoids" >> ~/.bashrc && \
     echo "export PYTHONPATH=\$PYTHONPATH:/opt/gazebo/install/lib/python" >> ~/.bashrc && \
