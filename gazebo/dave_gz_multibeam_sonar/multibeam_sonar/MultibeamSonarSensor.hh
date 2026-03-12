@@ -153,12 +153,16 @@ private:
     std::string sonarImageRawTopicName;
     std::string sonarImageTopicName;
     std::string frameName;
+    std::string frameId;  // for non-optical frame id from sensor
 
     // Ray parameters
     int raySkips;
     int ray_nAzimuthRays;
     int ray_nElevationRays;
     float * rangeVector;
+
+    // Sonar image parameters
+    bool blazingFlag;
 
     // Debug flags and reflectivity
     bool debugFlag;
