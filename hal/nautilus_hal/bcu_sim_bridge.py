@@ -8,18 +8,42 @@ class BCUSimBridge(Node):
         super().__init__("nautilus_bcu_bridge")
 
         # Constant: meter cube displaced per revolution (1ml)
-        self.m3_per_rev = self.declare_parameter("m3_per_rev", 1.0e-7).value
+        self.declare_parameter("m3_per_rev", 1.0e-7)
+        self.declare_parameter("model_name", "glider_nautilus")
+
+        model_name = self.get_parameter("model_name").value
+        self.m3_per_rev = self.get_parameter("m3_per_rev").value
 
         self.current_volume = 0.0
         self.last_time = self.get_clock().now()
 
         self.rpm_sub = self.create_subscription(
-            Float64, "bcu/rpm_cmd", self.rpm_callback, 10
+            Float64,
+            "/glider/bcu/rpm_cmd",
+            self.rpm_callback,
+            10,
         )
 
-        self.volume_pub = self.create_publisher(Float64, "buoyancy_engine", 10)
+        self.sim_sub = self.create_subscription(
+            Float64,
+            f"/model/{model_name}/buoyancy_engine/current_volume",
+            self.sim_feedback_callback,
+            10,
+        )
 
-        self.get_logger().info("Nautilus BCU Sim Bridge Started (RPM -> Volume)")
+        self.volume_pub = self.create_publisher(
+            Float64, f"/model/{model_name}/buoyancy_engine", 10
+        )
+
+        self.get_logger().info(
+            "Nautilus BCU Bridge: Listening for RPM on /glider/bcu/rpm_cmd"
+        )
+        self.get_logger().info(
+            f"Nautilus BCU Bridge: Publishing Volume to /model/{model_name}/buoyancy_engine"
+        )
+
+    def sim_feedback_callback(self, msg):
+        self.current_volume = msg.data
 
     def rpm_callback(self, msg):
         now = self.get_clock().now()
