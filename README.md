@@ -51,7 +51,7 @@ rm -rf build/ install/ log/
 
 # Rebuild the workspace with Nautilus customizations
 # NOTE: we skip the Hardware Abstraction Layer (HAL) of the actual control
-colcon build --package-skip nautilus_hal --symlink-install
+colcon build --packages-skip nautilus_hal --symlink-install
 
 # Source the workspace
 source install/setup.bash
@@ -88,7 +88,7 @@ source install/setup.bash
 We need to start 3 components: 
 1. The Hardware Abstraction layer 
 ```bash
-ros2 launch nautilus_hal bridge_launch.py 
+ros2 launch nautilus_hal bridge_launch.py  # launches all the interfaces
 ````
 2. The control logic (for this there is a mocked integration test)
 ```bash
@@ -96,7 +96,7 @@ ros2 run py_pkg bcu_oscillator
 ``` 
 3. The DAVE simulation with Nautilus
 ```bash
-ros2 launch nautilus_hal bridge_launch.py # launches all the interfaces
+ros2 launch dave_demos dave_robot.launch.py   z:=-5 namespace:=glider_nautilus world_name:=dave_ocean_waves paused:=false
 ```
 
 Now, if everything is working correctly, you should see the Nautilus Glider reach for the surface and dive back down in an oscillary motion.
