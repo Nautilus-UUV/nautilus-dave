@@ -1,3 +1,6 @@
+import os
+from glob import glob
+
 from setuptools import find_packages, setup
 
 package_name = "nautilus_hal"
@@ -9,10 +12,14 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
+        (
+            os.path.join("share", package_name, "launch"),
+            glob(os.path.join("launch", "*launch.[pxy][yma]*")),
+        ),
     ],
     install_requires=["setuptools", "py_pkg"],
     zip_safe=True,
-    maintainer="girji",
+    maintainer="Girjoaba",
     maintainer_email="andrei.girjoaba@aris-space.ch",
     description="Simulation Hardware Abstraction Layer (HAL) for the Nautilus glider",
     license="Apache-2.0",

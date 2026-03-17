@@ -38,6 +38,8 @@ source /opt/ros/jazzy/setup.bash
 source /opt/gazebo/install/setup.bash && export PYTHONPATH=$PYTHONPATH:/opt/gazebo/install/lib/python
 ```
 
+
+
 Build custom dave:
 
 ```bash
@@ -48,7 +50,8 @@ cd ~/dave_ws
 rm -rf build/ install/ log/
 
 # Rebuild the workspace with Nautilus customizations
-colcon build --symlink-install
+# NOTE: we skip the Hardware Abstraction Layer (HAL) of the actual control
+colcon build --package-skip nautilus_hal --symlink-install
 
 # Source the workspace
 source install/setup.bash
@@ -64,6 +67,40 @@ alias dave='jazzy && harmonic && source ~/dave_ws/install/setup.bash'
 
 > [!NOTE]
 > That's right, we don't technically need to follow the DAVE installation since we are deleting it and rebuilding it. All that is needed is a working ros2 and corresponding gazebo version.
+
+
+## Running the [nautilus-ros Repository](https://github.com/Nautilus-UUV/nautilus-ros) with the Digital Twin
+
+```bash
+cd ~/dave_ws/src
+git clone -b dev ... # [INSERT ROS2 REPO]
+
+cd ~/dave_ws
+rm -rf build/ install/ log/
+
+colcon build --symlink-install # this time not skipping the nautilus_hal
+
+source install/setup.bash
+```
+
+### Testing Setup
+
+We need to start 3 components: 
+1. The Hardware Abstraction layer 
+```bash
+ros2 launch nautilus_hal bridge_launch.py 
+````
+2. The control logic (for this there is a mocked integration test)
+```bash
+ros2 run py_pkg bcu_oscillator 
+``` 
+3. The DAVE simulation with Nautilus
+```bash
+ros2 launch nautilus_hal bridge_launch.py # launches all the interfaces
+```
+
+Now, if everything is working correctly, you should see the Nautilus Glider reach for the surface and dive back down in an oscillary motion.
+
 
 ## Branch Structure
 
