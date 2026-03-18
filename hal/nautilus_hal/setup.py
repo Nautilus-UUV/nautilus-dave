@@ -28,6 +28,7 @@ setup(
         "console_scripts": [
             "bcu_sim_bridge = nautilus_hal.bcu_sim_bridge:main",
             "external_sensor_sim_bridge = nautilus_hal.external_sensor_sim_bridge:main",
+            "imu_sim_bridge = nautilus_hal.imu_sim_bridge:main",
         ],
     },
 )

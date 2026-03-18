@@ -17,5 +17,11 @@ def generate_launch_description():
                 name="external_sensor_sim_bridge",
                 output="screen",
             ),
+            Node(
+                package="nautilus_hal",
+                executable="imu_sim_bridge",
+                name="imu_sim_bridge",
+                output="screen",
+            ),
         ]
     )
