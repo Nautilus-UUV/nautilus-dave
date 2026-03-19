@@ -22,6 +22,10 @@ def launch_setup(context, *args, **kwargs):
     use_web_joystick = LaunchConfiguration("use_web_joystick")
     joystick_ws_host = LaunchConfiguration("joystick_ws_host")
     joystick_ws_port = LaunchConfiguration("joystick_ws_port")
+    open_qgc = LaunchConfiguration("open_qgc")
+    open_virtual_joystick = LaunchConfiguration("open_virtual_joystick")
+    virtual_joystick_url = LaunchConfiguration("virtual_joystick_url").perform(context)
+    ui_launch_delay = LaunchConfiguration("ui_launch_delay").perform(context)
 
     thruster_joints = []
     for thruster in range(1, 9):
@@ -98,6 +102,43 @@ def launch_setup(context, *args, **kwargs):
         ],
         output="screen",
         condition=IfCondition(use_ardusub),
+    )
+
+    qgc_cmd = (
+        f"sleep {ui_launch_delay}; "
+        "while true; do "
+        "if [ \"$(id -u)\" -eq 0 ]; then "
+        "sudo -u ubuntu qgroundcontrol; "
+        "else "
+        "qgroundcontrol; "
+        "fi; "
+        "sleep 3; "
+        "done"
+    )
+    qgc_process = ExecuteProcess(
+        cmd=[
+            "/usr/bin/env",
+            "bash",
+            "-lc",
+            qgc_cmd,
+        ],
+        output="screen",
+        condition=IfCondition(open_qgc),
+    )
+
+    joystick_cmd = (
+        f"sleep {ui_launch_delay}; "
+        f"firefox --new-window '{virtual_joystick_url}'"
+    )
+    joystick_process = ExecuteProcess(
+        cmd=[
+            "/usr/bin/env",
+            "bash",
+            "-lc",
+            joystick_cmd,
+        ],
+        output="screen",
+        condition=IfCondition(open_virtual_joystick),
     )
 
     ardusub_process = ExecuteProcess(
@@ -182,6 +223,8 @@ def launch_setup(context, *args, **kwargs):
         start_ardusub,
         start_mavros,
         teleop_launch,
+        qgc_process,
+        joystick_process,
     ]
 
 
@@ -250,6 +293,29 @@ def generate_launch_description():
             "ardusub_home",
             default_value="35.074823,129.084798,0.0,270.0",
             description="ArduSub HOME argument (lat,lon,alt,heading)",
+        ),
+        DeclareLaunchArgument(
+            "open_qgc",
+            default_value="false",
+            description="Launch QGroundControl",
+        ),
+        DeclareLaunchArgument(
+            "open_virtual_joystick",
+            default_value="false",
+            description="Open the virtual joystick page in Firefox",
+        ),
+        DeclareLaunchArgument(
+            "virtual_joystick_url",
+            default_value=(
+                "https://raw.githubusercontent.com/IOES-Lab/dave/"
+                "refs/heads/ros2/extras/virtual_joystick.html"
+            ),
+            description="URL for the virtual joystick page",
+        ),
+        DeclareLaunchArgument(
+            "ui_launch_delay",
+            default_value="2.0",
+            description="Delay (seconds) before launching QGC/Firefox",
         ),
     ]
 

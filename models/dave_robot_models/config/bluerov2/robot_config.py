@@ -127,7 +127,15 @@ def launch_setup(context, *args, **kwargs):
     )
 
     qgc_cmd = (
-        f"sleep {ui_launch_delay}; " "while true; do qgroundcontrol; sleep 3; done"
+        f"sleep {ui_launch_delay}; "
+        "while true; do "
+        'if [ "$(id -u)" -eq 0 ]; then '
+        "sudo -u ubuntu qgroundcontrol; "
+        "else "
+        "qgroundcontrol; "
+        "fi; "
+        "sleep 3; "
+        "done"
     )
     qgc_process = ExecuteProcess(
         cmd=[
