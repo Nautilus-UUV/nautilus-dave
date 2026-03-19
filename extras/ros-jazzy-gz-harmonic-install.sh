@@ -68,6 +68,7 @@ GAZEBO=gz-harmonic
 echo -e "\033[34mInstalling ROS Gazebo framework...\033[0m"
 sudo apt update && sudo apt install -y \
     python3-rosdep \
+    python3-catkin-pkg \
     python3-rosinstall-generator \
     python3-colcon-core \
     python3-colcon-common-extensions \
