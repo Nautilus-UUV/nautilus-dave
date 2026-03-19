@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import select
 import sys
 import termios
@@ -67,7 +68,8 @@ class KeyboardJoyPublisher(Node):
             return sys.stdin
 
         try:
-            return open("/dev/tty", "r", encoding="utf-8", buffering=1)
+            # Use unbuffered binary mode for reliable single-key reads.
+            return open("/dev/tty", "rb", buffering=0)
         except OSError as exc:
             self.get_logger().warn(
                 "No interactive TTY for keyboard teleop "
@@ -91,11 +93,17 @@ class KeyboardJoyPublisher(Node):
         super().destroy_node()
 
     def read_key_nonblocking(self):
-        if self.input_stream is None:
+        if self.fd is None:
             return None
 
-        if select.select([self.input_stream], [], [], 0.0)[0]:
-            return self.input_stream.read(1)
+        if select.select([self.fd], [], [], 0.0)[0]:
+            raw = os.read(self.fd, 1)
+            if not raw:
+                return None
+            try:
+                return raw.decode("utf-8")
+            except UnicodeDecodeError:
+                return None
 
         return None
 
