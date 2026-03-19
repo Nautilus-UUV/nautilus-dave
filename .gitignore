@@ -51,3 +51,5 @@ __pycache__/
 build/
 log/
 install/
+logs/
+eeprom.bin
