@@ -113,13 +113,17 @@ sudo mkdir -p /opt/mavros_ws && cd /opt/mavros_ws || exit
 sudo wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
 sudo chmod +x install_geographiclib_datasets.sh && sudo bash ./install_geographiclib_datasets.sh
 
-# Environment variables setup (add to ~/.bashrc or ~/.zshrc)
-echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc && \
-echo "export PATH=/opt/ardusub_ws/ardupilot/Tools/autotest:\$PATH" >> ~/.bashrc && \
-echo "export PATH=/opt/ardusub_ws/ardupilot/build/sitl/bin:\$PATH" >> ~/.bashrc && \
-echo "export GEOGRAPHICLIB_GEOID_PATH=/usr/share/GeographicLib/geoids" >> ~/.bashrc && \
-echo "export GZ_SIM_SYSTEM_PLUGIN_PATH=/opt/ardusub_ws/ardupilot_gazebo/build:\$GZ_SIM_SYSTEM_PLUGIN_PATH" >> ~/.bashrc && \
-echo "export GZ_SIM_RESOURCE_PATH=/opt/ardusub_ws/ardupilot_gazebo/models:/opt/ardusub_ws/ardupilot_gazebo/worlds:\$GZ_SIM_RESOURCE_PATH" >> ~/.bashrc
+# Environment variables setup (add to the user's shell rc file)
+RC_FILE="$HOME/.bashrc"
+if [ -n "$ZSH_VERSION" ] || [ "$(basename -- "${SHELL:-}")" = "zsh" ]; then
+    RC_FILE="$HOME/.zshrc"
+fi
+echo "source /opt/ros/jazzy/setup.bash" >> "$RC_FILE" && \
+echo "export PATH=/opt/ardusub_ws/ardupilot/Tools/autotest:\$PATH" >> "$RC_FILE" && \
+echo "export PATH=/opt/ardusub_ws/ardupilot/build/sitl/bin:\$PATH" >> "$RC_FILE" && \
+echo "export GEOGRAPHICLIB_GEOID_PATH=/usr/share/GeographicLib/geoids" >> "$RC_FILE" && \
+echo "export GZ_SIM_SYSTEM_PLUGIN_PATH=/opt/ardusub_ws/ardupilot_gazebo/build:\$GZ_SIM_SYSTEM_PLUGIN_PATH" >> "$RC_FILE" && \
+echo "export GZ_SIM_RESOURCE_PATH=/opt/ardusub_ws/ardupilot_gazebo/models:/opt/ardusub_ws/ardupilot_gazebo/worlds:\$GZ_SIM_RESOURCE_PATH" >> "$RC_FILE"
 
 echo
 echo -e "\033[32m============================================================\033[0m"
