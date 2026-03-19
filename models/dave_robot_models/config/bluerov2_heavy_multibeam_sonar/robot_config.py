@@ -105,6 +105,10 @@ def launch_setup(context, *args, **kwargs):
     )
 
     qgc_cmd = (
+        "if ! command -v qgroundcontrol >/dev/null 2>&1; then "
+        'echo "QGroundControl not found, skipping open_qgc."; '
+        "exit 0; "
+        "fi; "
         f"sleep {ui_launch_delay}; "
         "while true; do "
         "if [ \"$(id -u)\" -eq 0 ]; then "
