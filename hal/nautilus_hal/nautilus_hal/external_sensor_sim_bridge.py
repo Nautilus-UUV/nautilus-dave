@@ -11,8 +11,12 @@ class ExternalSensorSimBridge(Node):
         super().__init__("nautilus_external_sensor_bridge")
 
         self.declare_parameter("model_name", "glider_nautilus")
-
         model_name = self.get_parameter("model_name").value
+
+        self.latest_pressure = 0
+        self.latest_depth = 0
+        # 10 Hz frequency for publishing external sensors
+        self.pub_timer = self.create_timer(0.1, self.publish_at_rate)
 
         self.pressure_pub = create_publisher_for_topic(
             self, UUVTopics.EXTERNAL_PRESSURE
@@ -39,16 +43,18 @@ class ExternalSensorSimBridge(Node):
 
     def sim_external_pressure_callback(self, msg):
         """Publish depth as external pressure."""
-        depth_msg = Int32()
-        depth_msg.data = int(msg.fluid_pressure)
-
-        self.pressure_pub.publish(depth_msg)
+        self.latest_pressure = int(msg.fluid_pressure)
 
     def sim_depth_callback(self, msg):
         """Publish depth as external pressure."""
-        depth_msg = Int32()
-        depth_msg.data = int(msg.point.z * 100)
+        self.latest_depth = int(msg.point.z * 100)  # m to cm conversion
 
+    def publish_at_rate(self):
+        """Publish external sensors."""
+        pressure_msg = Int32(data=self.latest_pressure)
+        self.pressure_pub.publish(pressure_msg)
+
+        depth_msg = Int32(data=self.latest_depth)
         self.depth_pub.publish(depth_msg)
 
 
