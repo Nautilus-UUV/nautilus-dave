@@ -1,8 +1,12 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+)
 from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -13,6 +17,7 @@ def launch_setup(context, *args, **kwargs):
     debug = LaunchConfiguration("debug")
     headless = LaunchConfiguration("headless")
     verbose = LaunchConfiguration("verbose")
+    gui_config = LaunchConfiguration("gui_config")
     namespace = LaunchConfiguration("namespace")
     world_name = LaunchConfiguration("world_name")
     x = LaunchConfiguration("x")
@@ -40,6 +45,8 @@ def launch_setup(context, *args, **kwargs):
     if debug.perform(context) == "true":
         gz_args.append(" -v ")
         gz_args.append(verbose.perform(context))
+    if gui_config.perform(context):
+        gz_args.append(f" --gui-config {gui_config.perform(context)}")
 
     # Include the first launch file
     gz_sim_launch = IncludeLaunchDescription(
@@ -130,6 +137,13 @@ def generate_launch_description():
             "world_name",
             default_value="empty.sdf",
             description="Gazebo world file to launch",
+        ),
+        DeclareLaunchArgument(
+            "gui_config",
+            default_value=PathJoinSubstitution(
+                [FindPackageShare("dave_demos"), "gui.config"]
+            ),
+            description="Gazebo GUI configuration file",
         ),
         DeclareLaunchArgument(
             "namespace",

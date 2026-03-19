@@ -1,19 +1,16 @@
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    RegisterEventHandler,
-    LogInfo,
     IncludeLaunchDescription,
-)
-from launch.substitutions import (
-    LaunchConfiguration,
-    PathJoinSubstitution,
+    LogInfo,
+    RegisterEventHandler,
 )
 from launch.conditions import IfCondition
-from launch_ros.substitutions import FindPackageShare
 from launch.event_handlers import OnProcessExit
-from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
@@ -41,7 +38,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "namespace",
-            default_value="",
+            default_value="bluerov2",
             description="Namespace",
         ),
         DeclareLaunchArgument(
@@ -131,7 +128,6 @@ def generate_launch_description():
             yaw,
         ],
         output="both",
-        condition=IfCondition(gui),
         parameters=[{"use_sim_time": use_sim_time}],
     )
 
@@ -156,12 +152,13 @@ def generate_launch_description():
         }.items(),
     )
 
-    include = [robot_config]
-
     event_handlers = [
         RegisterEventHandler(
-            OnProcessExit(target_action=gz_spawner, on_exit=LogInfo(msg="Robot Model Uploaded"))
+            OnProcessExit(
+                target_action=gz_spawner,
+                on_exit=[LogInfo(msg="Robot Model Uploaded"), robot_config],
+            )
         )
     ]
 
-    return LaunchDescription(args + nodes + event_handlers + include)
+    return LaunchDescription(args + nodes + event_handlers)
