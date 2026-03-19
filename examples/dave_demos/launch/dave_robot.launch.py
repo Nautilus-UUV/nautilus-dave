@@ -31,6 +31,10 @@ def launch_setup(context, *args, **kwargs):
     use_web_joystick = LaunchConfiguration("use_web_joystick")
     joystick_ws_host = LaunchConfiguration("joystick_ws_host")
     joystick_ws_port = LaunchConfiguration("joystick_ws_port")
+    open_qgc = LaunchConfiguration("open_qgc")
+    open_virtual_joystick = LaunchConfiguration("open_virtual_joystick")
+    virtual_joystick_url = LaunchConfiguration("virtual_joystick_url")
+    ui_launch_delay = LaunchConfiguration("ui_launch_delay")
 
     selected_world_name = LaunchConfiguration("world_name").perform(context)
     if selected_world_name != "empty.sdf":
@@ -101,6 +105,10 @@ def launch_setup(context, *args, **kwargs):
             "joystick_ws_port": joystick_ws_port,
             "zoom_camera": zoom_camera_value,
             "zoom_camera_delay": zoom_camera_delay,
+            "open_qgc": open_qgc,
+            "open_virtual_joystick": open_virtual_joystick,
+            "virtual_joystick_url": virtual_joystick_url,
+            "ui_launch_delay": ui_launch_delay,
         }.items(),
     )
 
@@ -207,6 +215,28 @@ def generate_launch_description():
             "joystick_ws_port",
             default_value="8765",
             description="Bind port for websocket joystick bridge",
+        ),
+        DeclareLaunchArgument(
+            "open_qgc",
+            default_value="false",
+            description="Launch QGroundControl",
+        ),
+        DeclareLaunchArgument(
+            "open_virtual_joystick",
+            default_value="false",
+            description="Open the virtual joystick page in Firefox",
+        ),
+        DeclareLaunchArgument(
+            "virtual_joystick_url",
+            default_value=(
+                "https://ioes-lab.github.io/dave/extras/virtual_joystick.html"
+            ),
+            description="URL for the virtual joystick page",
+        ),
+        DeclareLaunchArgument(
+            "ui_launch_delay",
+            default_value="2.0",
+            description="Delay (seconds) before launching QGC/Firefox",
         ),
         DeclareLaunchArgument(
             "zoom_camera_delay",

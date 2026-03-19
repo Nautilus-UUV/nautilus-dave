@@ -30,6 +30,10 @@ def generate_launch_description():
     joystick_ws_port = LaunchConfiguration("joystick_ws_port")
     zoom_camera = LaunchConfiguration("zoom_camera")
     zoom_camera_delay = LaunchConfiguration("zoom_camera_delay")
+    open_qgc = LaunchConfiguration("open_qgc")
+    open_virtual_joystick = LaunchConfiguration("open_virtual_joystick")
+    virtual_joystick_url = LaunchConfiguration("virtual_joystick_url")
+    ui_launch_delay = LaunchConfiguration("ui_launch_delay")
 
     args = [
         DeclareLaunchArgument(
@@ -101,6 +105,29 @@ def generate_launch_description():
             "joystick_ws_port",
             default_value="8765",
             description="Bind port for websocket joystick bridge",
+        ),
+        DeclareLaunchArgument(
+            "open_qgc",
+            default_value="false",
+            description="Launch QGroundControl",
+        ),
+        DeclareLaunchArgument(
+            "open_virtual_joystick",
+            default_value="false",
+            description="Open the virtual joystick page in Firefox",
+        ),
+        DeclareLaunchArgument(
+            "virtual_joystick_url",
+            default_value=(
+                "https://raw.githubusercontent.com/IOES-Lab/dave/"
+                "refs/heads/ros2/extras/virtual_joystick.html"
+            ),
+            description="URL for the virtual joystick page",
+        ),
+        DeclareLaunchArgument(
+            "ui_launch_delay",
+            default_value="2.0",
+            description="Delay (seconds) before launching QGC/Firefox",
         ),
         DeclareLaunchArgument(
             "zoom_camera",
@@ -191,6 +218,10 @@ def generate_launch_description():
             "joystick_ws_port": joystick_ws_port,
             "zoom_camera": zoom_camera,
             "zoom_camera_delay": zoom_camera_delay,
+            "open_qgc": open_qgc,
+            "open_virtual_joystick": open_virtual_joystick,
+            "virtual_joystick_url": virtual_joystick_url,
+            "ui_launch_delay": ui_launch_delay,
         }.items(),
     )
 
