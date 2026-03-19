@@ -88,7 +88,7 @@ source install/setup.bash
 We need to start 3 components: 
 1. The Hardware Abstraction layer 
 ```bash
-ros2 launch nautilus_hal bridge_launch.py  # launches all the interfaces
+ros2 launch nautilus_hal bridge.launch.py  # launches all the interfaces
 ````
 2. The control logic (for this there is a mocked integration test)
 ```bash
