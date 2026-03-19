@@ -52,7 +52,7 @@ RUN apt-get update && rosdep update && \
 # Compile Dave
 WORKDIR $DAVE_WS
 RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" && \
-    colcon build
+    colcon build --symlink-install
 WORKDIR /
 
 # Set up bashrc for root

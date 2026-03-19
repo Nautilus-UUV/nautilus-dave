@@ -106,28 +106,31 @@ extras/background.png && \
         /usr/share/backgrounds/ubuntu-wallpaper-d.png
 
 # Set up Dave workspace
+USER docker
 ENV DAVE_UNDERLAY=/home/$USER/dave_ws
 WORKDIR $DAVE_UNDERLAY/src
 RUN wget -O /home/$USER/dave_ws/dave.repos -q https://raw.githubusercontent.com/IOES-Lab/dave/$BRANCH/\
 extras/repos/dave.$ROS_DISTRO.repos
 RUN vcs import --shallow --input "/home/$USER/dave_ws/dave.repos"
 
-USER root
 # hadolint ignore=DL3027
-RUN apt update && apt --fix-broken install && \
-    rosdep init && rosdep update --rosdistro $ROS_DISTRO && \
-    rosdep install --rosdistro $ROS_DISTRO -iy --from-paths . && \
-    rm -rf /var/lib/apt/lists/
-USER docker
+RUN rosdep update --rosdistro $ROS_DISTRO && \
+    rosdep install --rosdistro $ROS_DISTRO -iy --from-paths .
 
 # Build dave workspace
 WORKDIR $DAVE_UNDERLAY
-RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" && colcon build
+RUN . "/opt/ros/${ROS_DISTRO}/setup.sh" && colcon build --symlink-install
 
 # Set User as user
 USER docker
 RUN echo "source $DAVE_UNDERLAY/install/setup.bash" >> ~/.bashrc && \
-    echo "\n\n" >> ~/.bashrc && echo "if [ -d ~/HOST ]; then chown $USER:$USER ~/HOST; fi" >> ~/.bashrc  && \
+    echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc && \
+    echo "export PATH=/opt/ardusub_ws/ardupilot/Tools/autotest:\$PATH" >> ~/.bashrc && \
+    echo "export PATH=/opt/ardusub_ws/ardupilot/build/sitl/bin:\$PATH" >> ~/.bashrc && \
+    echo "export GEOGRAPHICLIB_GEOID_PATH=/usr/share/GeographicLib/geoids" >> ~/.bashrc && \
+    echo "export GZ_SIM_SYSTEM_PLUGIN_PATH=/opt/ardusub_ws/ardupilot_gazebo/build:\$GZ_SIM_SYSTEM_PLUGIN_PATH" >> ~/.bashrc && \
+    echo "export GZ_SIM_RESOURCE_PATH=/opt/ardusub_ws/ardupilot_gazebo/models:/opt/ardusub_ws/ardupilot_gazebo/worlds:\$GZ_SIM_RESOURCE_PATH" >> ~/.bashrc && \
+    echo "\n" >> ~/.bashrc && echo "if [ -d ~/HOST ]; then chown $USER:$USER ~/HOST; fi" >> ~/.bashrc  && \
     echo "export PS1='\[\e[1;36m\]\u@DAVE_docker\[\e[0m\]\[\e[1;34m\](\$(hostname | cut -c1-12))\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ '" >>  ~/.bashrc
 
 # Other environment variables
