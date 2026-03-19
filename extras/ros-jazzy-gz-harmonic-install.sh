@@ -89,7 +89,8 @@ sudo apt update && sudo apt install -y \
     ros-$DIST-teleop-tools \
     ros-$DIST-urdfdom-py \
     ros-$DIST-marine-acoustic-msgs \
-    ros-dev-tools
+    ros-dev-tools \
+    && rosdep init
 
 echo
 echo -e "\033[96m(4/4) ------------     Install Ardusub    ---------------\033[0m"
