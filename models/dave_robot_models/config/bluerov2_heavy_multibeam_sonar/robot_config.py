@@ -194,7 +194,12 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "mavros_file",
             default_value=PathJoinSubstitution(
-                [FindPackageShare("dave_robot_models"), "config", "mavros", "mavros.yaml"]
+                [
+                    FindPackageShare("dave_robot_models"),
+                    "config",
+                    "mavros",
+                    "mavros.yaml",
+                ]
             ),
             description="Path to mavros.yaml file",
         ),
@@ -206,7 +211,12 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "ardusub_params",
             default_value=PathJoinSubstitution(
-                [FindPackageShare("dave_robot_models"), "config", "bluerov2", "ardusub.parm"]
+                [
+                    FindPackageShare("dave_robot_models"),
+                    "config",
+                    "bluerov2",
+                    "ardusub.parm",
+                ]
             ),
             description="Path to ardusub.parm file",
         ),
@@ -217,7 +227,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "ardusub_home",
-            default_value="44.65870,-124.06556,0.0,270.0",
+            default_value="35.074823,129.084798,0.0,270.0",
             description="ArduSub HOME argument (lat,lon,alt,heading)",
         ),
     ]

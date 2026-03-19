@@ -208,7 +208,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "ardusub_home",
-            default_value="44.65870,-124.06556,0.0,270.0",
+            default_value="35.074823,129.084798,0.0,270.0",
             description="ArduSub HOME argument (lat,lon,alt,heading)",
         ),
     ]
