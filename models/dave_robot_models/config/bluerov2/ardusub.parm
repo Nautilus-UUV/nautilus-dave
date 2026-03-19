@@ -92,6 +92,8 @@ AHRS_EKF_TYPE 3
 # Enable external nav
 # From https://ardupilot.org/copter/docs/common-vio-tracking-camera.html
 GPS_TYPE 0            # Disable GPS
+GPS1_TYPE 0           # Disable GPS1 explicitly (newer param name)
+GPS2_TYPE 0           # Disable GPS2 explicitly
 VISO_TYPE 1           # External vision
 EK3_SRC1_POSXY 6      # External nav
 EK3_SRC1_VELXY 6      # External nav

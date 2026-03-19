@@ -2,12 +2,14 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
+    IncludeLaunchDescription,
     LogInfo,
     OpaqueFunction,
     RegisterEventHandler,
 )
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit, OnProcessStart
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -16,6 +18,10 @@ from launch_ros.substitutions import FindPackageShare
 def launch_setup(context, *args, **kwargs):
     namespace = LaunchConfiguration("namespace").perform(context)
     use_ardusub = LaunchConfiguration("use_ardusub")
+    use_teleop = LaunchConfiguration("use_teleop")
+    use_web_joystick = LaunchConfiguration("use_web_joystick")
+    joystick_ws_host = LaunchConfiguration("joystick_ws_host")
+    joystick_ws_port = LaunchConfiguration("joystick_ws_port")
 
     thruster_joints = []
     for thruster in range(1, 9):
@@ -110,28 +116,6 @@ def launch_setup(context, *args, **kwargs):
         condition=IfCondition(use_ardusub),
     )
 
-    fcu_wait_cmd = (
-        "if command -v nc >/dev/null 2>&1; then "
-        "while true; do nc -z 127.0.0.1 5760 && exit 0; sleep 1; done; "
-        "else "
-        "while true; do "
-        "(echo >/dev/tcp/127.0.0.1/5760) >/dev/null 2>&1 && exit 0; "
-        "sleep 1; "
-        "done; "
-        "fi"
-    )
-
-    wait_for_fcu_port = ExecuteProcess(
-        cmd=[
-            "/usr/bin/env",
-            "bash",
-            "-lc",
-            fcu_wait_cmd,
-        ],
-        output="screen",
-        condition=IfCondition(use_ardusub),
-    )
-
     mavros_node = Node(
         package="mavros",
         executable="mavros_node",
@@ -157,21 +141,38 @@ def launch_setup(context, *args, **kwargs):
         )
     )
 
-    start_fcu_wait = RegisterEventHandler(
+    start_mavros = RegisterEventHandler(
         OnProcessStart(
             target_action=ardusub_process,
-            on_start=[wait_for_fcu_port],
-        )
-    )
-
-    start_mavros = RegisterEventHandler(
-        OnProcessExit(
-            target_action=wait_for_fcu_port,
-            on_exit=[
-                LogInfo(msg="ArduSub FCU port ready, launching MAVROS"),
+            on_start=[
+                LogInfo(msg="ArduSub started, launching MAVROS"),
                 mavros_node,
             ],
         )
+    )
+
+    teleop_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [
+                PathJoinSubstitution(
+                    [
+                        FindPackageShare("dave_robot_models"),
+                        "launch",
+                        "bluerov_teleop.launch.py",
+                    ]
+                )
+            ]
+        ),
+        launch_arguments={
+            "namespace": LaunchConfiguration("namespace"),
+            "use_web_joystick": use_web_joystick,
+            "joystick_ws_host": joystick_ws_host,
+            "joystick_ws_port": joystick_ws_port,
+            "joystick_topic": "/joy",
+            "keyboard_topic": "/keyboard/joy",
+            "mavros_namespace": "mavros",
+        }.items(),
+        condition=IfCondition(use_teleop),
     )
 
     return [
@@ -179,8 +180,8 @@ def launch_setup(context, *args, **kwargs):
         bluerov2_heavy_bridge,
         start_imu_wait,
         start_ardusub,
-        start_fcu_wait,
         start_mavros,
+        teleop_launch,
     ]
 
 
@@ -207,6 +208,26 @@ def generate_launch_description():
             "use_ardusub",
             default_value="true",
             description="Launch ArduSub SITL and MAVROS",
+        ),
+        DeclareLaunchArgument(
+            "use_teleop",
+            default_value="true",
+            description="Launch keyboard and websocket teleop nodes",
+        ),
+        DeclareLaunchArgument(
+            "use_web_joystick",
+            default_value="true",
+            description="Launch websocket joystick bridge",
+        ),
+        DeclareLaunchArgument(
+            "joystick_ws_host",
+            default_value="0.0.0.0",
+            description="Bind host for websocket joystick bridge",
+        ),
+        DeclareLaunchArgument(
+            "joystick_ws_port",
+            default_value="8765",
+            description="Bind port for websocket joystick bridge",
         ),
         DeclareLaunchArgument(
             "ardusub_params",

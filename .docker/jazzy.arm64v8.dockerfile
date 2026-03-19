@@ -106,7 +106,7 @@ extras/background.png && \
         /usr/share/backgrounds/ubuntu-wallpaper-d.png
 
 # Install QGroundControl
-RUN usermod -aG dialout "$(id -un)"
+RUN usermod -aG dialout "$(id -un)" && apt remove modemmanager
 RUN apt-get -q update && \
     apt-get install -y --no-install-recommends \
     ffmpeg python3-venv python3-websockets \
@@ -120,7 +120,7 @@ RUN mkdir ~/QGC && wget -O ~/QGC/QGroundControl-aarch64-DailyBuild.AppImage \
     "https://d176tv9ibo4jno.cloudfront.net/builds/master/QGroundControl-aarch64.AppImage" && \
     cd ~/QGC && chmod +x QGroundControl-aarch64-DailyBuild.AppImage && \
     cd ~/QGC && ./QGroundControl-aarch64-DailyBuild.AppImage --appimage-extract && \
-    mv ~/QGC/squashfs-root ~/QGC && rm ~/QGC/QGroundControl-aarch64-DailyBuild.AppImage && \
+    mv ~/QGC/squashfs-root/* ~/QGC/. && rm ~/QGC/QGroundControl-aarch64-DailyBuild.AppImage && \
     mkdir -p /home/$USER/.local/bin && \
     ln -sf /home/$USER/QGC/AppRun /home/$USER/.local/bin/qgroundcontrol 
 
@@ -155,6 +155,9 @@ RUN echo "source $DAVE_UNDERLAY/install/setup.bash" >> ~/.bashrc && \
     echo "export GEOGRAPHICLIB_GEOID_PATH=/usr/share/GeographicLib/geoids" >> ~/.bashrc && \
     echo "export GZ_SIM_SYSTEM_PLUGIN_PATH=/opt/ardusub_ws/ardupilot_gazebo/build:\$GZ_SIM_SYSTEM_PLUGIN_PATH" >> ~/.bashrc && \
     echo "export GZ_SIM_RESOURCE_PATH=/opt/ardusub_ws/ardupilot_gazebo/models:/opt/ardusub_ws/ardupilot_gazebo/worlds:\$GZ_SIM_RESOURCE_PATH" >> ~/.bashrc && \
+    echo "export GST_PLUGIN_PATH=/usr/lib/aarch64-linux-gnu/gstreamer-1.0:\$GST_PLUGIN_PATH" >> ~/.bashrc && \
+    echo "export QML2_IMPORT_PATH=/usr/lib/aarch64-linux-gnu/qt6/qml:\$QML2_IMPORT_PATH" >> ~/.bashrc && \
+    echo "export LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:\$LD_LIBRARY_PATH" >> ~/.bashrc && \
     echo "\n" >> ~/.bashrc && echo "if [ -d ~/HOST ]; then chown $USER:$USER ~/HOST; fi" >> ~/.bashrc  && \
     echo "export PS1='\[\e[1;36m\]\u@DAVE_docker\[\e[0m\]\[\e[1;34m\](\$(hostname | cut -c1-12))\[\e[0m\]:\[\e[1;34m\]\w\[\e[0m\]\$ '" >>  ~/.bashrc
 

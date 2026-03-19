@@ -24,6 +24,12 @@ def generate_launch_description():
     pitch = LaunchConfiguration("pitch")
     yaw = LaunchConfiguration("yaw")
     use_ned_frame = LaunchConfiguration("use_ned_frame")
+    use_teleop = LaunchConfiguration("use_teleop")
+    use_web_joystick = LaunchConfiguration("use_web_joystick")
+    joystick_ws_host = LaunchConfiguration("joystick_ws_host")
+    joystick_ws_port = LaunchConfiguration("joystick_ws_port")
+    zoom_camera = LaunchConfiguration("zoom_camera")
+    zoom_camera_delay = LaunchConfiguration("zoom_camera_delay")
 
     args = [
         DeclareLaunchArgument(
@@ -75,6 +81,36 @@ def generate_launch_description():
             "use_ned_frame",
             default_value="false",
             description="Use North-East-Down frame",
+        ),
+        DeclareLaunchArgument(
+            "use_teleop",
+            default_value="true",
+            description="Launch BlueROV teleop nodes",
+        ),
+        DeclareLaunchArgument(
+            "use_web_joystick",
+            default_value="true",
+            description="Launch websocket joystick bridge",
+        ),
+        DeclareLaunchArgument(
+            "joystick_ws_host",
+            default_value="0.0.0.0",
+            description="Bind host for websocket joystick bridge",
+        ),
+        DeclareLaunchArgument(
+            "joystick_ws_port",
+            default_value="8765",
+            description="Bind port for websocket joystick bridge",
+        ),
+        DeclareLaunchArgument(
+            "zoom_camera",
+            default_value="false",
+            description="Zoom the GUI camera after launch",
+        ),
+        DeclareLaunchArgument(
+            "zoom_camera_delay",
+            default_value="2.0",
+            description="Delay (seconds) before moving the GUI camera",
         ),
     ]
 
@@ -149,6 +185,12 @@ def generate_launch_description():
         ),
         launch_arguments={
             "namespace": namespace,
+            "use_teleop": use_teleop,
+            "use_web_joystick": use_web_joystick,
+            "joystick_ws_host": joystick_ws_host,
+            "joystick_ws_port": joystick_ws_port,
+            "zoom_camera": zoom_camera,
+            "zoom_camera_delay": zoom_camera_delay,
         }.items(),
     )
 
