@@ -115,17 +115,28 @@ sudo mkdir -p /opt/mavros_ws && cd /opt/mavros_ws || exit
 sudo wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
 sudo chmod +x install_geographiclib_datasets.sh && sudo bash ./install_geographiclib_datasets.sh
 
-# Environment variables setup (add to the user's shell rc file)
+# Environment variables setup (write to ~/.dave/env and source from shell rc)
 RC_FILE="$HOME/.bashrc"
 if [ -n "$ZSH_VERSION" ] || [ "$(basename -- "${SHELL:-}")" = "zsh" ]; then
     RC_FILE="$HOME/.zshrc"
 fi
-echo "source /opt/ros/jazzy/setup.bash" >> "$RC_FILE" && \
-echo "export PATH=/opt/ardusub_ws/ardupilot/Tools/autotest:\$PATH" >> "$RC_FILE" && \
-echo "export PATH=/opt/ardusub_ws/ardupilot/build/sitl/bin:\$PATH" >> "$RC_FILE" && \
-echo "export GEOGRAPHICLIB_GEOID_PATH=/usr/share/GeographicLib/geoids" >> "$RC_FILE" && \
-echo "export GZ_SIM_SYSTEM_PLUGIN_PATH=/opt/ardusub_ws/ardupilot_gazebo/build:\$GZ_SIM_SYSTEM_PLUGIN_PATH" >> "$RC_FILE" && \
-echo "export GZ_SIM_RESOURCE_PATH=/opt/ardusub_ws/ardupilot_gazebo/models:/opt/ardusub_ws/ardupilot_gazebo/worlds:\$GZ_SIM_RESOURCE_PATH" >> "$RC_FILE"
+
+ENV_DIR="$HOME/.ros_ardusub_env"
+ENV_FILE="$ENV_DIR/env"
+mkdir -p "$ENV_DIR"
+
+cat > "$ENV_FILE" <<'EOF'
+source /opt/ros/jazzy/setup.bash
+export PATH=/opt/ardusub_ws/ardupilot/Tools/autotest:$PATH
+export PATH=/opt/ardusub_ws/ardupilot/build/sitl/bin:$PATH
+export GEOGRAPHICLIB_GEOID_PATH=/usr/share/GeographicLib/geoids
+export GZ_SIM_SYSTEM_PLUGIN_PATH=/opt/ardusub_ws/ardupilot_gazebo/build:$GZ_SIM_SYSTEM_PLUGIN_PATH
+export GZ_SIM_RESOURCE_PATH=/opt/ardusub_ws/ardupilot_gazebo/models:/opt/ardusub_ws/ardupilot_gazebo/worlds:$GZ_SIM_RESOURCE_PATH
+EOF
+
+if ! grep -q "^source \$HOME/.ros_ardusub_env/env$" "$RC_FILE"; then
+    echo "source \$HOME/.ros_ardusub_env/env" >> "$RC_FILE"
+fi
 
 echo
 echo -e "\033[32m============================================================\033[0m"
