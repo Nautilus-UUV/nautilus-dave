@@ -101,12 +101,17 @@ sudo apt update && sudo apt install -y \
     ffmpeg python3-venv python3-websockets \
     ros-${DIST}-joy-linux gstreamer1.0-tools gstreamer1.0-plugins-good gstreamer1.0-plugins-base \
     gstreamer1.0-plugins-ugly python3-gi python3-gst-1.0 \
-    libfuse2 libxcb-xinerama0 libxkbcommon-x11-0 libxcb-cursor-dev
+    libfuse2 libxcb-xinerama0 libxkbcommon-x11-0 libxcb-cursor-dev \
+    cython3 python3-dev python3-future python3-lxml
 
 # Install ardusub(local)
 sudo mkdir -p /opt/ardusub_ws && cd /opt/ardusub_ws || exit
 sudo wget https://raw.githubusercontent.com/IOES-Lab/dave/ros2/extras/ardusub-ubuntu-install.sh
 sudo chmod +x ardusub-ubuntu-install.sh && sudo bash ./ardusub-ubuntu-install.sh
+sudo git clone https://github.com/ArduPilot/pymavlink.git && cd /opt/ardusub_ws/pymavlink || exit
+sudo python3 setup.py install
+sudo git clone https://github.com/ArduPilot/MAVProxy.git && cd /opt/ardusub_ws/MAVProxy || exit
+sudo python3 setup.py install
 
 # Mavros install
 sudo apt-get -y install ros-jazzy-mavros*
