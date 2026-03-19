@@ -17,9 +17,9 @@ def launch_setup(context, *args, **kwargs):
     debug = LaunchConfiguration("debug")
     headless = LaunchConfiguration("headless")
     verbose = LaunchConfiguration("verbose")
-    gui_config = LaunchConfiguration("gui_config")
     namespace = LaunchConfiguration("namespace")
     world_name = LaunchConfiguration("world_name")
+    zoom_camera_delay = LaunchConfiguration("zoom_camera_delay")
     x = LaunchConfiguration("x")
     y = LaunchConfiguration("y")
     z = LaunchConfiguration("z")
@@ -27,16 +27,22 @@ def launch_setup(context, *args, **kwargs):
     pitch = LaunchConfiguration("pitch")
     yaw = LaunchConfiguration("yaw")
     use_ned_frame = LaunchConfiguration("use_ned_frame")
+    use_teleop = LaunchConfiguration("use_teleop")
+    use_web_joystick = LaunchConfiguration("use_web_joystick")
+    joystick_ws_host = LaunchConfiguration("joystick_ws_host")
+    joystick_ws_port = LaunchConfiguration("joystick_ws_port")
 
-    if world_name.perform(context) != "empty.sdf":
-        world_name = LaunchConfiguration("world_name").perform(context)
-        world_filename = f"{world_name}.world"
+    selected_world_name = LaunchConfiguration("world_name").perform(context)
+    if selected_world_name != "empty.sdf":
+        world_filename = f"{selected_world_name}.world"
         world_filepath = PathJoinSubstitution(
             [FindPackageShare("dave_worlds"), "worlds", world_filename]
         )
         gz_args = [world_filepath]
     else:
         gz_args = [world_name]
+
+    zoom_camera_value = "true" if selected_world_name == "dave_ocean_waves" else "false"
 
     if headless.perform(context) == "true":
         gz_args.append(" -s")
@@ -45,8 +51,6 @@ def launch_setup(context, *args, **kwargs):
     if debug.perform(context) == "true":
         gz_args.append(" -v ")
         gz_args.append(verbose.perform(context))
-    if gui_config.perform(context):
-        gz_args.append(f" --gui-config {gui_config.perform(context)}")
 
     # Include the first launch file
     gz_sim_launch = IncludeLaunchDescription(
@@ -91,6 +95,12 @@ def launch_setup(context, *args, **kwargs):
             "pitch": pitch,
             "yaw": yaw,
             "use_ned_frame": use_ned_frame,
+            "use_teleop": use_teleop,
+            "use_web_joystick": use_web_joystick,
+            "joystick_ws_host": joystick_ws_host,
+            "joystick_ws_port": joystick_ws_port,
+            "zoom_camera": zoom_camera_value,
+            "zoom_camera_delay": zoom_camera_delay,
         }.items(),
     )
 
@@ -139,13 +149,6 @@ def generate_launch_description():
             description="Gazebo world file to launch",
         ),
         DeclareLaunchArgument(
-            "gui_config",
-            default_value=PathJoinSubstitution(
-                [FindPackageShare("dave_demos"), "gui.config"]
-            ),
-            description="Gazebo GUI configuration file",
-        ),
-        DeclareLaunchArgument(
             "namespace",
             default_value="",
             description="Namespace",
@@ -184,6 +187,31 @@ def generate_launch_description():
             "use_ned_frame",
             default_value="false",
             description="Flag to indicate whether to use the north-east-down frame",
+        ),
+        DeclareLaunchArgument(
+            "use_teleop",
+            default_value="true",
+            description="Launch BlueROV teleop bridge and keyboard controls",
+        ),
+        DeclareLaunchArgument(
+            "use_web_joystick",
+            default_value="true",
+            description="Launch websocket joystick bridge for virtual joystick",
+        ),
+        DeclareLaunchArgument(
+            "joystick_ws_host",
+            default_value="0.0.0.0",
+            description="Bind host for websocket joystick bridge",
+        ),
+        DeclareLaunchArgument(
+            "joystick_ws_port",
+            default_value="8765",
+            description="Bind port for websocket joystick bridge",
+        ),
+        DeclareLaunchArgument(
+            "zoom_camera_delay",
+            default_value="2.0",
+            description="Delay (seconds) before moving the GUI camera",
         ),
     ]
 

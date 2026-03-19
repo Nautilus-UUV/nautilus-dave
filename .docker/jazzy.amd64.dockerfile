@@ -36,6 +36,22 @@ ADD https://raw.githubusercontent.com/IOES-Lab/dave/$BRANCH/\
 extras/ros-jazzy-gz-harmonic-install.sh install.sh
 RUN bash install.sh
 
+# Install QGroundControl
+RUN mkdir -p /opt/QGC && cd /opt/QGC && wget -O /opt/QGC/QGroundControl-x86_64.AppImage \
+    "https://d176tv9ibo4jno.cloudfront.net/latest/QGroundControl-x86_64.AppImage" && \
+    chmod +x QGroundControl-x86_64.AppImage && \
+    ./QGroundControl-x86_64.AppImage --appimage-extract && \
+    mv squashfs-root/* /opt/QGC/ && rm QGroundControl-x86_64.AppImage && \
+    ln -sf /opt/QGC/AppRun /usr/local/bin/qgroundcontrol
+
+# Install Firefox from Mozilla (aarch64 tarball)
+RUN curl -L "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64&lang=en-US" \
+        -o /tmp/firefox.tar.xz && \
+    mkdir -p /opt/firefox && \
+    tar -xJf /tmp/firefox.tar.xz -C /opt && \
+    ln -sf /opt/firefox/firefox /usr/local/bin/firefox && \
+    rm -f /tmp/firefox.tar.xz
+
 # Set up Dave workspace
 ENV DAVE_WS=/opt/dave_ws
 WORKDIR $DAVE_WS/src

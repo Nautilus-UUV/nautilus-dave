@@ -105,8 +105,33 @@ extras/background.png && \
     cp /usr/share/backgrounds/warty-final-ubuntu.png \
         /usr/share/backgrounds/ubuntu-wallpaper-d.png
 
-# Set up Dave workspace
+# Install QGroundControl
+RUN usermod -aG dialout "$(id -un)"
+RUN apt-get -q update && \
+    apt-get install -y --no-install-recommends \
+    ffmpeg python3-venv python3-websockets \
+    ros-${ROS_DISTRO}-joy-linux gstreamer1.0-tools gstreamer1.0-plugins-base \ 
+    gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly python3-gi python3-gst-1.0 \
+    libfuse2 libxcb-xinerama0 libxkbcommon-x11-0 libxcb-cursor-dev gstreamer1.0-qt6 \
+    gstreamer1.0-gl libqt6qml6 qml6-module-qtquick qml6-module-qtquick-window && \
+     rm -rf /var/lib/apt/lists/*
 USER docker
+RUN mkdir ~/QGC && wget -O ~/QGC/QGroundControl-aarch64-DailyBuild.AppImage \
+    "https://d176tv9ibo4jno.cloudfront.net/builds/master/QGroundControl-aarch64.AppImage" && \
+    cd ~/QGC && chmod +x QGroundControl-aarch64-DailyBuild.AppImage && \
+    cd ~/QGC && ./QGroundControl-aarch64-DailyBuild.AppImage --appimage-extract && \
+    mv ~/QGC/squashfs-root ~/QGC && rm ~/QGC/QGroundControl-aarch64-DailyBuild.AppImage && \
+    mkdir -p /home/$USER/.local/bin && \
+    ln -sf /home/$USER/QGC/AppRun /home/$USER/.local/bin/qgroundcontrol 
+
+# Install Firefox from Mozilla (aarch64 tarball)
+RUN curl -L "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64-aarch64&lang=en-US" \
+        -o /tmp/firefox.tar.xz && \
+    tar -xJf /tmp/firefox.tar.xz -C /home/$USER && \
+    ln -sf /home/$USER/firefox/firefox /home/$USER/.local/bin/firefox && \
+    rm -f /tmp/firefox.tar.xz
+
+# Set up Dave workspace
 ENV DAVE_UNDERLAY=/home/$USER/dave_ws
 WORKDIR $DAVE_UNDERLAY/src
 RUN wget -O /home/$USER/dave_ws/dave.repos -q https://raw.githubusercontent.com/IOES-Lab/dave/$BRANCH/\

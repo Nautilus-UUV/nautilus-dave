@@ -108,10 +108,6 @@ sudo apt update && sudo apt install -y \
 sudo mkdir -p /opt/ardusub_ws && cd /opt/ardusub_ws || exit
 sudo wget https://raw.githubusercontent.com/IOES-Lab/dave/ros2/extras/ardusub-ubuntu-install.sh
 sudo chmod +x ardusub-ubuntu-install.sh && sudo bash ./ardusub-ubuntu-install.sh
-cd /opt/ardusub_ws || exit && sudo git clone https://github.com/ArduPilot/pymavlink.git && cd /opt/ardusub_ws/pymavlink || exit
-sudo python3 setup.py install
-cd /opt/ardusub_ws || exit && sudo git clone https://github.com/ArduPilot/MAVProxy.git && cd /opt/ardusub_ws/MAVProxy || exit
-sudo python3 setup.py install
 
 # Mavros install
 sudo apt-get -y install ros-jazzy-mavros*
