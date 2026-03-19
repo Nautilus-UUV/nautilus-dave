@@ -124,7 +124,7 @@ class ArduSubManualControl(Node):
         self.connected = False
         self.armed = False
         self.current_mode = ""
-        self.desired_mode = STABILIZE_MODE
+        self.last_requested_mode = ""
 
         self.throttle_index = THROTTLE_DEFAULT_INDEX
         self.throttle_scale = THROTTLE_LEVELS[self.throttle_index]
@@ -137,7 +137,6 @@ class ArduSubManualControl(Node):
         self._last_scale_dn = 0
 
         self._last_warn_sec = {}
-        self._last_mode_request_sec = -math.inf
         self._mode_future = None
         self._arm_future = None
 
@@ -147,7 +146,8 @@ class ArduSubManualControl(Node):
         self.get_logger().info(
             "ardusub_manual_control started | "
             f"model={self.model_name}, joy={self.joystick_topic}, "
-            f"keyboard={self.keyboard_topic}, mavros_ns={mavros_ns or '/'}"
+            f"keyboard={self.keyboard_topic}, mavros_ns={mavros_ns or '/'} | "
+            "mode control: external/QGC respected (no forced STABILIZE)"
         )
 
     def cb_joy(self, msg):
@@ -233,7 +233,7 @@ class ArduSubManualControl(Node):
             self._last_warn_sec[key] = now_sec
 
     def _call_set_mode(self, mode):
-        self.desired_mode = mode
+        self.last_requested_mode = mode
 
         if not self.mode_client.service_is_ready():
             self._warn_throttled("set_mode", "Waiting for MAVROS set_mode service")
@@ -244,7 +244,6 @@ class ArduSubManualControl(Node):
         request = SetMode.Request()
         request.custom_mode = mode
         self._mode_future = self.mode_client.call_async(request)
-        self._last_mode_request_sec = self.get_clock().now().nanoseconds * 1e-9
         self._mode_future.add_done_callback(self._on_mode_response)
 
     def _on_mode_response(self, future):
@@ -255,9 +254,13 @@ class ArduSubManualControl(Node):
             return
 
         if response.mode_sent:
-            self.get_logger().info(f"Requested ArduSub mode: {self.desired_mode}")
+            self.get_logger().info(
+                f"Requested ArduSub mode: {self.last_requested_mode}"
+            )
         else:
-            self.get_logger().warn(f"ArduSub rejected mode request: {self.desired_mode}")
+            self.get_logger().warn(
+                f"ArduSub rejected mode request: {self.last_requested_mode}"
+            )
 
     def _call_arm(self, arm):
         if not self.arm_client.service_is_ready():
@@ -280,18 +283,6 @@ class ArduSubManualControl(Node):
 
         if not response.success:
             self.get_logger().warn("ArduSub rejected arm/disarm request")
-
-    def _sync_mode(self):
-        if not self.connected:
-            return
-        if self.current_mode == self.desired_mode:
-            return
-
-        now_sec = self.get_clock().now().nanoseconds * 1e-9
-        if now_sec - self._last_mode_request_sec < 2.0:
-            return
-
-        self._call_set_mode(self.desired_mode)
 
     def _update_throttle_scale(self):
         scale_up = self._get_btn(BTN_SCALE_UP)
@@ -348,7 +339,6 @@ class ArduSubManualControl(Node):
             self.last_axes = []
             self.last_buttons = []
             self._publish_manual(0.0, 0.0, THROTTLE_NEUTRAL, 0.0)
-            self._sync_mode()
             return
 
         self.last_axes = active_input["axes"]
@@ -376,7 +366,6 @@ class ArduSubManualControl(Node):
             clamp(heave, 0.0, MAX_MANUAL),
             clamp(yaw, -MAX_MANUAL, MAX_MANUAL),
         )
-        self._sync_mode()
 
 
 def main():
