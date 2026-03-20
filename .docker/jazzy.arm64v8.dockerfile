@@ -106,7 +106,7 @@ extras/background.png && \
         /usr/share/backgrounds/ubuntu-wallpaper-d.png
 
 # Install QGroundControl
-RUN usermod -aG dialout "$(id -un)" && apt remove modemmanager
+RUN usermod -aG dialout "$(id -un)" && apt -y remove modemmanager
 RUN apt-get -q update && \
     apt-get install -y --no-install-recommends \
     ffmpeg python3-venv python3-websockets \
