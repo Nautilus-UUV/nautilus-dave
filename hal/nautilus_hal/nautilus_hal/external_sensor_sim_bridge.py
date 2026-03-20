@@ -5,12 +5,17 @@ from rclpy.node import Node
 from sensor_msgs.msg import FluidPressure
 from std_msgs.msg import Int32
 
+from .constants import Conversions, SimTopics
+
 
 class ExternalSensorSimBridge(Node):
     def __init__(self):
-        super().__init__("nautilus_external_sensor_bridge")
+        super().__init__(
+            "nautilus_external_sensor_bridge",
+            automatically_declare_parameters_from_overrides=True,
+            allow_undeclared_parameters=True,
+        )
 
-        self.declare_parameter("model_name", "glider_nautilus")
         model_name = self.get_parameter("model_name").value
 
         self.latest_pressure = 0
@@ -24,7 +29,7 @@ class ExternalSensorSimBridge(Node):
         self.depth_pub = create_publisher_for_topic(self, UUVTopics.TEST_EXTERNAL_DEPTH)
         self.sim_pressure_sub = self.create_subscription(
             FluidPressure,
-            f"/model/{model_name}/sea_pressure",
+            SimTopics.SEA_PRESSURE.format(model_name=model_name),
             self.sim_external_pressure_callback,
             10,
         )
@@ -32,13 +37,13 @@ class ExternalSensorSimBridge(Node):
         # in model.sdf
         self.sim_depth_sub = self.create_subscription(
             PointStamped,
-            f"/model/{model_name}/sea_pressure_depth",
+            SimTopics.SEA_PRESSURE_DEPTH.format(model_name=model_name),
             self.sim_depth_callback,
             10,
         )
 
         self.get_logger().info(
-            f"Nautilus Sensor Bridge: Listening for pose on  /model/{model_name}/pose"
+            f"Nautilus Sensor Bridge: Listening for pose on {SimTopics.SEA_PRESSURE.format(model_name=model_name)}"
         )
 
     def sim_external_pressure_callback(self, msg):
@@ -47,7 +52,7 @@ class ExternalSensorSimBridge(Node):
 
     def sim_depth_callback(self, msg):
         """Publish depth as external pressure."""
-        self.latest_depth = int(msg.point.z * 100)  # m to cm conversion
+        self.latest_depth = int(msg.point.z * Conversions.M_TO_CM)  # m to cm conversion
 
     def publish_at_rate(self):
         """Publish external sensors."""

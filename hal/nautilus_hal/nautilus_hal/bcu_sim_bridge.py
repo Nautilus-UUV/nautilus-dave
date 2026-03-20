@@ -7,17 +7,22 @@ from py_pkg.uuv_ros_core import (
 from rclpy.node import Node
 from std_msgs.msg import Float32, Float64, Int32
 
+from .constants import Conversions, SimTopics
+
 
 class BCUSimBridge(Node):
     def __init__(self):
-        super().__init__("nautilus_bcu_bridge")
+        super().__init__(
+            "nautilus_bcu_bridge",
+            automatically_declare_parameters_from_overrides=True,
+            allow_undeclared_parameters=True,
+        )
 
-        # Constant: meter cube displaced per revolution (1ml)
-        self.declare_parameter("m3_per_rev", 1.0e-6)
-        self.declare_parameter("model_name", "glider_nautilus")
-
+        # Directly access parameters from the YAML overrides.
         model_name = self.get_parameter("model_name").value
         self.m3_per_rev = self.get_parameter("m3_per_rev").value
+        self.max_capacity = self.get_parameter("max_capacity_m3").value
+        self.min_capacity = self.get_parameter("min_capacity_m3").value
 
         self.current_volume = 0.0
 
@@ -39,13 +44,13 @@ class BCUSimBridge(Node):
         self.bcu_pressure_pub = create_publisher_for_topic(self, UUVTopics.BCU_PRESSURE)
         self.sim_current_volume_sub = self.create_subscription(
             Float64,
-            f"/model/{model_name}/buoyancy_engine/current_volume",
+            SimTopics.BUOYANCY_VOLUME_STATE.format(model_name=model_name),
             self.sim_bcu_volume_callback,
             10,
         )
 
         self.sim_volume_pub = self.create_publisher(
-            Float64, f"/model/{model_name}/buoyancy_engine", 10
+            Float64, SimTopics.BUOYANCY_COMMAND.format(model_name=model_name), 10
         )
 
         self.get_logger().info(f"Nautilus BCU Bridge: Listening on {UUVTopics.BCU_RPM}")
@@ -63,8 +68,8 @@ class BCUSimBridge(Node):
 
         self.current_volume += delta_vol
         self.current_volume = max(
-            0.0, min(self.current_volume, 0.0025)
-        )  # TODO: do not hardcode max capacity
+            self.min_capacity, min(self.current_volume, self.max_capacity)
+        )
 
         out_msg = Float64()
         out_msg.data = self.current_volume
@@ -77,7 +82,7 @@ class BCUSimBridge(Node):
 
     def sim_bcu_volume_callback(self, msg):
         # Volume (m3) to milliliters (mL) as integer
-        self.latest_volume = int(msg.data * 1e6)
+        self.latest_volume = int(msg.data * Conversions.M3_TO_ML)
 
     def publish_at_rate(self):
         bcu_pressure_msg = Int32(data=self.latest_volume)

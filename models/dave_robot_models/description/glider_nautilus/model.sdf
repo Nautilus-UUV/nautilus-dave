@@ -413,7 +413,7 @@
       <min_volume>0.0</min_volume>
       <max_volume>0.0025</max_volume>
       <neutral_volume>0.0</neutral_volume>
-      <default_volume>0.0</default_volume>
+      <default_volume>0.00125</default_volume>
       <fluid_density>1025.0</fluid_density>
       <surface>0</surface>
       <namespace>glider_nautilus</namespace>

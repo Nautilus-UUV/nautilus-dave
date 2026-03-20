@@ -6,12 +6,17 @@ from py_pkg.uuv_ros_core import (
 from rclpy.node import Node
 from sensor_msgs.msg import Imu
 
+from .constants import SimTopics
+
 
 class IMUSimBridge(Node):
     def __init__(self):
-        super().__init__("nautilus_imu_bridge")
+        super().__init__(
+            "nautilus_imu_bridge",
+            automatically_declare_parameters_from_overrides=True,
+            allow_undeclared_parameters=True,
+        )
 
-        self.declare_parameter("model_name", "glider_nautilus")
         model_name = self.get_parameter("model_name").value
 
         self.imu_left_pub = create_publisher_for_topic(self, UUVTopics.IMU_LEFT)
@@ -20,13 +25,13 @@ class IMUSimBridge(Node):
         # Gazebo IMU topic (bridged by ros_gz_bridge)
         self.sim_imu_sub = self.create_subscription(
             Imu,
-            f"/model/{model_name}/imu",
+            SimTopics.IMU.format(model_name=model_name),
             self.sim_imu_callback,
             10,
         )
 
         self.get_logger().info(
-            f"Nautilus IMU Bridge: Listening for IMU on /model/{model_name}/imu"
+            f"Nautilus IMU Bridge: Listening for IMU on {SimTopics.IMU.format(model_name=model_name)}"
         )
         self.get_logger().info(
             f"Nautilus IMU Bridge: Publishing to {UUVTopics.IMU_LEFT} and {UUVTopics.IMU_RIGHT}"
