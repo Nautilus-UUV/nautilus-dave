@@ -65,12 +65,10 @@ class ArduSubManualControl(Node):
         self.declare_parameter("mavros_namespace", "mavros")
 
         self.model_name = (
-            self.get_parameter("model_name").get_parameter_value().string_value
-            or "bluerov2"
+            self.get_parameter("model_name").get_parameter_value().string_value or "bluerov2"
         )
         self.joystick_topic = (
-            self.get_parameter("joystick_topic").get_parameter_value().string_value
-            or "/joy"
+            self.get_parameter("joystick_topic").get_parameter_value().string_value or "/joy"
         )
         self.keyboard_topic = (
             self.get_parameter("keyboard_topic").get_parameter_value().string_value
@@ -78,8 +76,7 @@ class ArduSubManualControl(Node):
         )
 
         mavros_namespace = (
-            self.get_parameter("mavros_namespace").get_parameter_value().string_value
-            or "mavros"
+            self.get_parameter("mavros_namespace").get_parameter_value().string_value or "mavros"
         )
         mavros_ns = resolve_namespace(mavros_namespace)
 
@@ -254,13 +251,9 @@ class ArduSubManualControl(Node):
             return
 
         if response.mode_sent:
-            self.get_logger().info(
-                f"Requested ArduSub mode: {self.last_requested_mode}"
-            )
+            self.get_logger().info(f"Requested ArduSub mode: {self.last_requested_mode}")
         else:
-            self.get_logger().warn(
-                f"ArduSub rejected mode request: {self.last_requested_mode}"
-            )
+            self.get_logger().warn(f"ArduSub rejected mode request: {self.last_requested_mode}")
 
     def _call_arm(self, arm):
         if not self.arm_client.service_is_ready():
@@ -292,17 +285,13 @@ class ArduSubManualControl(Node):
             if self.throttle_index < len(THROTTLE_LEVELS) - 1:
                 self.throttle_index += 1
                 self.throttle_scale = THROTTLE_LEVELS[self.throttle_index]
-                self.get_logger().info(
-                    f"manual XY/yaw scale = {self.throttle_scale:.2f}"
-                )
+                self.get_logger().info(f"manual XY/yaw scale = {self.throttle_scale:.2f}")
 
         if scale_dn == 1 and self._last_scale_dn == 0:
             if self.throttle_index > 0:
                 self.throttle_index -= 1
                 self.throttle_scale = THROTTLE_LEVELS[self.throttle_index]
-                self.get_logger().info(
-                    f"manual XY/yaw scale = {self.throttle_scale:.2f}"
-                )
+                self.get_logger().info(f"manual XY/yaw scale = {self.throttle_scale:.2f}")
 
         self._last_scale_up = scale_up
         self._last_scale_dn = scale_dn

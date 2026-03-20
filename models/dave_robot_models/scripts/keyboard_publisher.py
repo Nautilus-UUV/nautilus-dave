@@ -72,8 +72,7 @@ class KeyboardJoyPublisher(Node):
             return open("/dev/tty", "rb", buffering=0)
         except OSError as exc:
             self.get_logger().warn(
-                "No interactive TTY for keyboard teleop "
-                f"({exc}). Run launch from a terminal."
+                "No interactive TTY for keyboard teleop " f"({exc}). Run launch from a terminal."
             )
             return None
 

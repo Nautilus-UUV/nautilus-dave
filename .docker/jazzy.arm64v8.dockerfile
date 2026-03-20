@@ -110,7 +110,7 @@ RUN usermod -aG dialout "$(id -un)" && apt -y remove modemmanager
 RUN apt-get -q update && \
     apt-get install -y --no-install-recommends \
     ffmpeg python3-venv python3-websockets \
-    ros-${ROS_DISTRO}-joy-linux gstreamer1.0-tools gstreamer1.0-plugins-base \ 
+    ros-${ROS_DISTRO}-joy-linux gstreamer1.0-tools gstreamer1.0-plugins-base \
     gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly python3-gi python3-gst-1.0 \
     libfuse2 libxcb-xinerama0 libxkbcommon-x11-0 libxcb-cursor-dev gstreamer1.0-qt6 \
     gstreamer1.0-gl libqt6qml6 qml6-module-qtquick qml6-module-qtquick-window && \
@@ -122,7 +122,7 @@ RUN mkdir ~/QGC && wget -O ~/QGC/QGroundControl-aarch64-DailyBuild.AppImage \
     cd ~/QGC && ./QGroundControl-aarch64-DailyBuild.AppImage --appimage-extract && \
     mv ~/QGC/squashfs-root/* ~/QGC/. && rm ~/QGC/QGroundControl-aarch64-DailyBuild.AppImage && \
     mkdir -p /home/$USER/.local/bin && \
-    ln -sf /home/$USER/QGC/AppRun /home/$USER/.local/bin/qgroundcontrol 
+    ln -sf /home/$USER/QGC/AppRun /home/$USER/.local/bin/qgroundcontrol
 
 # Install Firefox from Mozilla (aarch64 tarball)
 RUN curl -L "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64-aarch64&lang=en-US" \

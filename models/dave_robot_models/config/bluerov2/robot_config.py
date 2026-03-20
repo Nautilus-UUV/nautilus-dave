@@ -34,7 +34,7 @@ def launch_setup(context, *args, **kwargs):
     # Keep the default bridge focused on control/state topics; high-bandwidth camera
     # image bridging drags the sim over time even when teleop is the only use case.
     bluerov2_arguments = [
-        f"/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
+        "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
         f"/model/{namespace}/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry",
         (
             f"/model/{namespace}/odometry_with_covariance@"
@@ -136,9 +136,7 @@ def launch_setup(context, *args, **kwargs):
         condition=IfCondition(open_qgc),
     )
 
-    joystick_cmd = (
-        f"sleep {ui_launch_delay}; " f"firefox --new-window '{virtual_joystick_url}'"
-    )
+    joystick_cmd = f"sleep {ui_launch_delay}; " f"firefox --new-window '{virtual_joystick_url}'"
     joystick_process = ExecuteProcess(
         cmd=[
             "/usr/bin/env",

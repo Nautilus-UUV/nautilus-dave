@@ -29,8 +29,7 @@ class JoyWebSocketServer(Node):
         self.pub = self.create_publisher(Joy, self.output_topic, 10)
 
         self.get_logger().info(
-            f"WebSocket listening on ws://{self.ws_host}:{self.ws_port} -> "
-            f"{self.output_topic}"
+            f"WebSocket listening on ws://{self.ws_host}:{self.ws_port} -> " f"{self.output_topic}"
         )
 
     def publish_payload(self, payload):

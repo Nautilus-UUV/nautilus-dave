@@ -14,7 +14,6 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    gui = LaunchConfiguration("gui")
     use_sim_time = LaunchConfiguration("use_sim_time")
     namespace = LaunchConfiguration("namespace")
     x = LaunchConfiguration("x")

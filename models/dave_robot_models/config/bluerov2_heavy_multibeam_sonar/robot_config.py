@@ -30,7 +30,7 @@ def launch_setup(context, *args, **kwargs):
     # ArduPilotPlugin already publishes the internal actuator topics on Gazebo transport.
     # Bridging them here creates a second GZ publisher with no ROS producer behind it.
     bluerov2_heavy_arguments = [
-        f"/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
+        "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
         f"/model/{namespace}/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry",
         (
             f"/model/{namespace}/odometry_with_covariance@"
@@ -93,7 +93,7 @@ def launch_setup(context, *args, **kwargs):
         "fi; "
         f"sleep {ui_launch_delay}; "
         "while true; do "
-        "if [ \"$(id -u)\" -eq 0 ]; then "
+        'if [ "$(id -u)" -eq 0 ]; then '
         "sudo -u ubuntu qgroundcontrol; "
         "else "
         "qgroundcontrol; "
@@ -112,10 +112,7 @@ def launch_setup(context, *args, **kwargs):
         condition=IfCondition(open_qgc),
     )
 
-    joystick_cmd = (
-        f"sleep {ui_launch_delay}; "
-        f"firefox --new-window '{virtual_joystick_url}'"
-    )
+    joystick_cmd = f"sleep {ui_launch_delay}; " f"firefox --new-window '{virtual_joystick_url}'"
     joystick_process = ExecuteProcess(
         cmd=[
             "/usr/bin/env",
