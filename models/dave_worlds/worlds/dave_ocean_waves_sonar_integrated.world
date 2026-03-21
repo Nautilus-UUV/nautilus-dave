@@ -1,23 +1,8 @@
 <?xml version="1.0"?>
-<!-- Copyright (c) 2016 The UUV Simulator Authors.
-     All rights reserved.
-
-     Licensed under the Apache License, Version 2.0 (the "License");
-     you may not use this file except in compliance with the License.
-     You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-     Unless required by applicable law or agreed to in writing, software
-     distributed under the License is distributed on an "AS IS" BASIS,
-     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     See the License for the specific language governing permissions and
-     limitations under the License.
--->
 <!-- Modified for different Gazebo GUI camera angle -->
 
 <sdf version="1.4">
-  <world name="oceans_waves">
+  <world name="oceans_waves_sonar_integrated">
     <scene>
       <ambient>0.01 0.01 0.01 1.0</ambient>
       <sky>
@@ -112,18 +97,86 @@
       </uri>
     </include>
 
-  <include>
-    <uri>
-    https://fuel.gazebosim.org/1.0/hmoyen/models/Sunken Ship Distorted
-    </uri>
-    <pose>15 2 -16 0 0 1</pose>
+    <include>
+      <uri>
+        https://fuel.gazebosim.org/1.0/Cole/models/Sunken Ship
+      </uri>
+      <pose>10 -5 -16 -0.4 0 -1.7</pose>
+    </include>
 
-  </include>
+    <include>
+      <name>sunken_vase</name>
+        <pose>20 -3 -16 0 0 0</pose>
+        <uri>https://fuel.ignitionrobotics.org/1.0/Cole/models/Sunken Vase</uri>
+    </include>
+
+    <include>
+      <name>sunken_vase_distorted</name>
+        <pose>20 -3.5 -16 0 0 0</pose>
+      <uri>https://fuel.gazebosim.org/1.0/hmoyen/models/Sunken Vase Distorted</uri>
+      <static>true</static>
+    </include>
+
+    <include>
+      <name>sunken_vase2</name>
+        <pose>20 -4 -16 0 0 0</pose>
+      <uri>https://fuel.ignitionrobotics.org/1.0/Cole/models/Sunken Vase 02</uri>
+      <static>true</static>
+    </include>
+
+    <include>
+      <name>Lionfish2</name>
+        <pose>20 -4.5 -16 0 0 0</pose>
+      <uri>https://fuel.ignitionrobotics.org/1.0/Cole/models/Lionfish</uri>
+      <static>true</static>
+    </include>
+
+    <include>
+      <name>Coral2</name>
+        <pose>20 -5.0 -16 0 0 0</pose>
+      <uri>https://fuel.ignitionrobotics.org/1.0/Cole/models/Coral02</uri>
+      <static>true</static>
+    </include>
+
+    <include>
+      <name>Kelp3</name>
+        <pose>20 -6.5 -16 0 0 0</pose>
+      <uri>https://fuel.ignitionrobotics.org/1.0/Cole/models/Kelp 03</uri>
+      <static>true</static>
+    </include>
+
+    <include>
+      <name>Kelp4</name>
+        <pose>20 -7.5 -16 0 0 0</pose>
+      <uri>https://fuel.ignitionrobotics.org/1.0/Cole/models/Kelp 04</uri>
+      <static>true</static>
+    </include>
 
     <!-- Heightmap -->
     <include>
       <uri>https://fuel.gazebosim.org/1.0/hmoyen/models/Sand Heightmap</uri>
       <pose>0 0 -16 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>
+      https://fuel.gazebosim.org/1.0/hmoyen/models/Hardhat Superribbed
+      </uri>
+      <pose>20 -7 -16 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>
+      https://fuel.gazebosim.org/1.0/hmoyen/models/Torpedo MK46
+      </uri>
+      <pose>20 -1 -16 0 0 2</pose>
+    </include>
+
+    <include>
+      <uri>
+      https://fuel.gazebosim.org/1.0/hmoyen/models/MBARI MARS
+      </uri>
+      <pose>27 4 -16 0 0 1</pose>
     </include>
 
     <plugin

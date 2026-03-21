@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <sdf version="1.7">
-  <model name="bluerov2_heavy">
+  <model name="bluerov2_heavy_multibeam_sonar">
     <pose>0 0 0 0 0 0</pose>
 
     <!-- BlueROV2 thruster reference: http://www.ardusub.com/introduction/features.html -->
@@ -45,7 +45,7 @@
         <pose>0 0 0 3.142 0 0</pose>
         <always_on>1</always_on>
         <update_rate>1000.0</update_rate>
-        <topic>/model/bluerov2_heavy/imu</topic>
+        <topic>/model/bluerov2_heavy_multibeam_sonar/imu</topic>
       </sensor>
 
     </link>
@@ -67,7 +67,7 @@
         <update_rate>10</update_rate>
         <visualize>true</visualize>
         <always_on>1</always_on>
-        <topic>/model/bluerov2_heavy/camera</topic>
+        <topic>/model/bluerov2_heavy_multibeam_sonar/camera</topic>
         <camera>
           <horizontal_fov>1.05</horizontal_fov>
           <image>
@@ -116,6 +116,90 @@
     <joint name="camera_mount_joint" type="fixed">
       <parent>base_link</parent>
       <child>camera_mount_link</child>
+    </joint>
+
+    <link name="sonar_link">
+      <pose relative_to="base_link">0.2 0 -0.13 0 0 0</pose>
+      <inertial>
+        <mass>0.001</mass>
+        <inertia>
+          <ixx>0.0001</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0001</iyy>
+          <iyz>0</iyz>
+          <izz>0.0001</izz>
+        </inertia>
+      </inertial>
+      <visual name="sonar_visual">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>0.6 0.6 0.6</scale>
+            <uri>model://meshes/blueview_p900/p900.dae</uri>
+          </mesh>
+        </geometry>
+        <transparency>0</transparency>
+        <cast_shadows>1</cast_shadows>
+      </visual>
+      <collision name="sonar_collision">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <mesh>
+            <uri>model://meshes/blueview_p900/COLLISION-p900.dae</uri>
+          </mesh>
+        </geometry>
+      </collision>
+      <sensor name="multibeam_sonar" type="custom" gz:type="multibeam_sonar">
+        <always_on>true</always_on>
+        <update_rate>30.0</update_rate>
+        <topic>/model/bluerov2_heavy_multibeam_sonar/multibeam_sonar</topic>
+        <visualize>true</visualize>
+        <gz:multibeam_sonar>
+        <ray degrees="false">
+          <scan>
+            <horizontal>
+              <beams>512</beams>
+              <min_angle>-1.13447</min_angle>
+              <max_angle>1.13447</max_angle>
+            </horizontal>
+            <vertical>
+              <rays>300</rays>
+              <min_angle>-0.10472</min_angle>
+              <max_angle>0.10472</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.1</min>
+            <max>10.0</max>
+          </range>
+        </ray>
+          <spec>
+              <!-- Sonar properties -->
+            <verticalFOV>12</verticalFOV>
+            <sonarFreq>900e3</sonarFreq>
+            <bandwidth>29.9e3</bandwidth>
+            <soundSpeed>1500</soundSpeed>
+            <sourceLevel>220</sourceLevel>
+            <maxDistance>10</maxDistance>
+            <raySkips>10</raySkips>
+            <sensorGain>0.02</sensorGain>
+            <writeLog>true</writeLog>
+            <debugFlag>true</debugFlag>
+            <writeFrameInterval>5</writeFrameInterval>
+            <!-- ROS publication topics -->
+            <pointCloudTopicName>point_cloud</pointCloudTopicName>
+            <sonarImageRawTopicName>sonar_image_raw</sonarImageRawTopicName>
+            <sonarImageTopicName>sonar_image</sonarImageTopicName>
+            <frameName>forward_sonar_optical_link</frameName>
+          </spec>
+        </gz:multibeam_sonar>
+      </sensor>
+    </link>
+
+    <joint name="sonar_joint" type="fixed">
+      <parent>base_link</parent>
+      <child>sonar_link</child>
     </joint>
 
     <!-- Hydrodynamics plugin -->
@@ -398,7 +482,7 @@
     <plugin
         filename="gz-sim-thruster-system"
         name="gz::sim::systems::Thruster">
-      <namespace>bluerov2_heavy</namespace>
+      <namespace>bluerov2_heavy_multibeam_sonar</namespace>
       <joint_name>thruster1_joint</joint_name>
       <thrust_coefficient>0.02</thrust_coefficient>
       <fluid_density>1025.0</fluid_density>
@@ -410,7 +494,7 @@
     <plugin
         filename="gz-sim-thruster-system"
         name="gz::sim::systems::Thruster">
-      <namespace>bluerov2_heavy</namespace>
+      <namespace>bluerov2_heavy_multibeam_sonar</namespace>
       <joint_name>thruster2_joint</joint_name>
       <thrust_coefficient>0.02</thrust_coefficient>
       <fluid_density>1025.0</fluid_density>
@@ -422,7 +506,7 @@
     <plugin
         filename="gz-sim-thruster-system"
         name="gz::sim::systems::Thruster">
-      <namespace>bluerov2_heavy</namespace>
+      <namespace>bluerov2_heavy_multibeam_sonar</namespace>
       <joint_name>thruster3_joint</joint_name>
       <!-- Reverse spin to balance torque -->
       <thrust_coefficient>-0.02</thrust_coefficient>
@@ -435,7 +519,7 @@
     <plugin
         filename="gz-sim-thruster-system"
         name="gz::sim::systems::Thruster">
-      <namespace>bluerov2_heavy</namespace>
+      <namespace>bluerov2_heavy_multibeam_sonar</namespace>
       <joint_name>thruster4_joint</joint_name>
       <!-- Reverse spin to balance torque -->
       <thrust_coefficient>-0.02</thrust_coefficient>
@@ -448,7 +532,7 @@
     <plugin
         filename="gz-sim-thruster-system"
         name="gz::sim::systems::Thruster">
-      <namespace>bluerov2_heavy</namespace>
+      <namespace>bluerov2_heavy_multibeam_sonar</namespace>
       <joint_name>thruster5_joint</joint_name>
       <thrust_coefficient>0.02</thrust_coefficient>
       <fluid_density>1025.0</fluid_density>
@@ -460,7 +544,7 @@
     <plugin
         filename="gz-sim-thruster-system"
         name="gz::sim::systems::Thruster">
-      <namespace>bluerov2_heavy</namespace>
+      <namespace>bluerov2_heavy_multibeam_sonar</namespace>
       <joint_name>thruster6_joint</joint_name>
       <!-- Reverse spin to balance torque -->
       <thrust_coefficient>-0.02</thrust_coefficient>
@@ -473,7 +557,7 @@
     <plugin
         filename="gz-sim-thruster-system"
         name="gz::sim::systems::Thruster">
-      <namespace>bluerov2_heavy</namespace>
+      <namespace>bluerov2_heavy_multibeam_sonar</namespace>
       <joint_name>thruster7_joint</joint_name>
       <!-- Reverse spin to balance torque -->
       <thrust_coefficient>-0.02</thrust_coefficient>
@@ -486,7 +570,7 @@
     <plugin
         filename="gz-sim-thruster-system"
         name="gz::sim::systems::Thruster">
-      <namespace>bluerov2_heavy</namespace>
+      <namespace>bluerov2_heavy_multibeam_sonar</namespace>
       <joint_name>thruster8_joint</joint_name>
       <thrust_coefficient>0.02</thrust_coefficient>
       <fluid_density>1025.0</fluid_density>
@@ -519,7 +603,7 @@
         <servo_min>1100</servo_min>
         <servo_max>1900</servo_max>
         <type>COMMAND</type>
-        <cmd_topic>/model/bluerov2_heavy/joint/thruster1_joint/cmd_thrust</cmd_topic>
+        <cmd_topic>/model/bluerov2_heavy_multibeam_sonar/joint/thruster1_joint/cmd_thrust</cmd_topic>
         <offset>-0.5</offset>
         <multiplier>100</multiplier>
       </control>
@@ -528,7 +612,7 @@
         <servo_min>1100</servo_min>
         <servo_max>1900</servo_max>
         <type>COMMAND</type>
-        <cmd_topic>/model/bluerov2_heavy/joint/thruster2_joint/cmd_thrust</cmd_topic>
+        <cmd_topic>/model/bluerov2_heavy_multibeam_sonar/joint/thruster2_joint/cmd_thrust</cmd_topic>
         <offset>-0.5</offset>
         <multiplier>100</multiplier>
       </control>
@@ -537,7 +621,7 @@
         <servo_min>1100</servo_min>
         <servo_max>1900</servo_max>
         <type>COMMAND</type>
-        <cmd_topic>/model/bluerov2_heavy/joint/thruster3_joint/cmd_thrust</cmd_topic>
+        <cmd_topic>/model/bluerov2_heavy_multibeam_sonar/joint/thruster3_joint/cmd_thrust</cmd_topic>
         <offset>-0.5</offset>
         <multiplier>100</multiplier>
       </control>
@@ -546,7 +630,7 @@
         <servo_min>1100</servo_min>
         <servo_max>1900</servo_max>
         <type>COMMAND</type>
-        <cmd_topic>/model/bluerov2_heavy/joint/thruster4_joint/cmd_thrust</cmd_topic>
+        <cmd_topic>/model/bluerov2_heavy_multibeam_sonar/joint/thruster4_joint/cmd_thrust</cmd_topic>
         <offset>-0.5</offset>
         <multiplier>100</multiplier>
       </control>
@@ -555,7 +639,7 @@
         <servo_min>1100</servo_min>
         <servo_max>1900</servo_max>
         <type>COMMAND</type>
-        <cmd_topic>/model/bluerov2_heavy/joint/thruster5_joint/cmd_thrust</cmd_topic>
+        <cmd_topic>/model/bluerov2_heavy_multibeam_sonar/joint/thruster5_joint/cmd_thrust</cmd_topic>
         <offset>-0.5</offset>
         <multiplier>100</multiplier>
       </control>
@@ -564,7 +648,7 @@
         <servo_min>1100</servo_min>
         <servo_max>1900</servo_max>
         <type>COMMAND</type>
-        <cmd_topic>/model/bluerov2_heavy/joint/thruster6_joint/cmd_thrust</cmd_topic>
+        <cmd_topic>/model/bluerov2_heavy_multibeam_sonar/joint/thruster6_joint/cmd_thrust</cmd_topic>
         <offset>-0.5</offset>
         <multiplier>100</multiplier>
       </control>
@@ -573,7 +657,7 @@
         <servo_min>1100</servo_min>
         <servo_max>1900</servo_max>
         <type>COMMAND</type>
-        <cmd_topic>/model/bluerov2_heavy/joint/thruster7_joint/cmd_thrust</cmd_topic>
+        <cmd_topic>/model/bluerov2_heavy_multibeam_sonar/joint/thruster7_joint/cmd_thrust</cmd_topic>
         <offset>-0.5</offset>
         <multiplier>100</multiplier>
       </control>
@@ -582,7 +666,7 @@
         <servo_min>1100</servo_min>
         <servo_max>1900</servo_max>
         <type>COMMAND</type>
-        <cmd_topic>/model/bluerov2_heavy/joint/thruster8_joint/cmd_thrust</cmd_topic>
+        <cmd_topic>/model/bluerov2_heavy_multibeam_sonar/joint/thruster8_joint/cmd_thrust</cmd_topic>
         <offset>-0.5</offset>
         <multiplier>100</multiplier>
       </control>

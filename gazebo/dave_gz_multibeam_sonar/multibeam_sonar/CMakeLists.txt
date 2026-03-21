@@ -76,7 +76,12 @@ if(CUDAToolkit_FOUND)
   )
 
   find_library(CUBLAS_LIB cublas
-    HINTS ${CUDAToolkit_LIBRARY_DIR} /usr/local/cuda/lib64 /usr/lib/x86_64-linux-gnu /usr/lib)
+    HINTS
+      ${CUDAToolkit_LIBRARY_DIR}
+      /usr/local/cuda/lib64
+      /usr/lib/x86_64-linux-gnu
+      /usr/lib
+  )
   if(NOT CUBLAS_LIB)
     message(FATAL_ERROR "cuBLAS not found")
   endif()
@@ -111,7 +116,8 @@ if(CUDAToolkit_FOUND)
   )
 
 else()
-  message(STATUS "CUDA Toolkit not found or disabled: Skipping CUDA-specific targets")
+  message(STATUS "CUDA Toolkit not found or disabled: "
+                "Skipping CUDA-specific targets")
 endif()
 
 ament_package()
