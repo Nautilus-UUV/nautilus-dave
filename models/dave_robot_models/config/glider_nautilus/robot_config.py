@@ -19,7 +19,10 @@ def launch_setup(context, *args, **kwargs):
         f"/model/{namespace}/imu@sensor_msgs/msg/Imu@gz.msgs.IMU",
         f"/model/{namespace}/buoyancy_engine@std_msgs/msg/Float64@gz.msgs.Double",
         f"/model/{namespace}/buoyancy_engine/current_volume@std_msgs/msg/Float64@gz.msgs.Double",
-        f"/world/oceans_waves/model/{namespace}/joint_state@sensor_msgs/msg/JointState@gz.msgs.Model"
+        f"/world/oceans_waves/model/{namespace}/joint_state@sensor_msgs/msg/JointState@gz.msgs.Model",
+        f"/world/oceans_waves/model/{namespace}/joint_state@sensor_msgs/msg/JointState@gz.msgs.Model",
+        f"/model/{namespace}/joint/acu_roll_joint/0/cmd_pos@std_msgs/msg/Float64@gz.msgs.Double",
+        f"/model/{namespace}/joint/battery_joint/0/cmd_pos@std_msgs/msg/Float64@gz.msgs.Double",
     ]
 
     glider_nautilus_bridge = Node(
