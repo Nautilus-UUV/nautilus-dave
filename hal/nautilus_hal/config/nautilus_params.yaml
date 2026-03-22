@@ -1,0 +1,19 @@
+# Nautilus Simulation Bridge Parameters
+
+# Parameters under /** are shared by all nodes that load this file
+/**:
+  ros__parameters:
+    model_name: "glider_nautilus"
+
+nautilus_bcu_bridge:
+  ros__parameters:
+    m3_per_rev: 0.32e-6
+    max_capacity_m3: 0.0025
+    min_capacity_m3: 0.0010
+
+# These nodes will now automatically inherit 'model_name' from the /** block
+nautilus_external_sensor_bridge:
+  ros__parameters: {}
+
+nautilus_imu_bridge:
+  ros__parameters: {}

@@ -44,3 +44,5 @@
 
 # Polaris
 old_models
+
+__pycache__/
