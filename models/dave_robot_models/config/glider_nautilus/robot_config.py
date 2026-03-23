@@ -1,7 +1,7 @@
 from launch import LaunchDescription
-from launch_ros.actions import Node
-from launch.substitutions import LaunchConfiguration
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
 
 
 def launch_setup(context, *args, **kwargs):
@@ -23,6 +23,8 @@ def launch_setup(context, *args, **kwargs):
         f"/world/oceans_waves/model/{namespace}/joint_state@sensor_msgs/msg/JointState@gz.msgs.Model",
         f"/model/{namespace}/joint/acu_roll_joint/0/cmd_pos@std_msgs/msg/Float64@gz.msgs.Double",
         f"/model/{namespace}/joint/battery_joint/0/cmd_pos@std_msgs/msg/Float64@gz.msgs.Double",
+        f"/{namespace}/sea_pressure@sensor_msgs/msg/FluidPressure@gz.msgs.FluidPressure",
+        f"/world/oceans_waves/model/{namespace}/joint_state@sensor_msgs/msg/JointState@gz.msgs.Model",
     ]
 
     glider_nautilus_bridge = Node(
