@@ -20,7 +20,8 @@ def generate_launch_description():
                             "bridge.launch.py",
                         )
                     ]
-                )
+                ),
+                launch_arguments={"use_sim_time": "true"}.items(),
             ),
             # 2. Start-Up: BCU Oscillator
             Node(
@@ -28,6 +29,7 @@ def generate_launch_description():
                 executable="bcu_oscillator",
                 name="bcu_oscillator",
                 output="screen",
+                parameters=[{"use_sim_time": True}],
             ),
             # 3. Start-Up: Dave Robot Simulation
             IncludeLaunchDescription(
@@ -46,6 +48,8 @@ def generate_launch_description():
                     "world_name": "dave_ocean_waves",
                     "paused": "false",
                     "gui": "true",
+                    "headless": "true",
+                    "use_sim_time": "true",
                 }.items(),
             ),
         ]
