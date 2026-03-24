@@ -117,12 +117,16 @@ sudo wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts
 sudo chmod +x install_geographiclib_datasets.sh && sudo bash ./install_geographiclib_datasets.sh
 
 # Environment variables setup (write to ~/.dave/env and source from shell rc)
-RC_FILE="$HOME/.bashrc"
-if [ -n "$ZSH_VERSION" ] || [ "$(basename -- "${SHELL:-}")" = "zsh" ]; then
-    RC_FILE="$HOME/.zshrc"
-fi
+TARGET_USER="${SUDO_USER:-$USER}"
+TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
+TARGET_SHELL="$(getent passwd "$TARGET_USER" | cut -d: -f7)"
 
-ENV_DIR="$HOME/.ros_ardusub_env"
+RC_FILE="$TARGET_HOME/.bashrc"
+case "$TARGET_SHELL" in
+    */zsh) RC_FILE="$TARGET_HOME/.zshrc" ;;
+esac
+
+ENV_DIR="$TARGET_HOME/.ros_ardusub_env"
 ENV_FILE="$ENV_DIR/env"
 mkdir -p "$ENV_DIR"
 
@@ -135,9 +139,12 @@ export GZ_SIM_SYSTEM_PLUGIN_PATH=/opt/ardusub_ws/ardupilot_gazebo/build:$GZ_SIM_
 export GZ_SIM_RESOURCE_PATH=/opt/ardusub_ws/ardupilot_gazebo/models:/opt/ardusub_ws/ardupilot_gazebo/worlds:$GZ_SIM_RESOURCE_PATH
 EOF
 
-if ! grep -q "^source \$HOME/.ros_ardusub_env/env$" "$RC_FILE"; then
+if ! grep -q "^source \$HOME/.ros_ardusub_env/env$" "$RC_FILE" 2>/dev/null; then
     echo "source \$HOME/.ros_ardusub_env/env" >> "$RC_FILE"
 fi
+
+chown -R "$TARGET_USER:$TARGET_USER" "$ENV_DIR"
+chown "$TARGET_USER:$TARGET_USER" "$RC_FILE" 2>/dev/null || true
 
 echo
 echo -e "\033[32m============================================================\033[0m"
