@@ -118,7 +118,18 @@ def launch_setup(context, *args, **kwargs):
         condition=IfCondition(open_qgc),
     )
 
-    joystick_cmd = f"sleep {ui_launch_delay}; " f"firefox --new-window '{virtual_joystick_url}'"
+    joystick_cmd = (
+        "if ! command -v firefox >/dev/null 2>&1; then "
+        'echo "Firefox not found, skipping open_virtual_joystick."; '
+        "exit 0; "
+        "fi; "
+        f"sleep {ui_launch_delay}; "
+        'if [ "$(id -u)" -eq 0 ]; then '
+        f"sudo -u ubuntu firefox --new-window '{virtual_joystick_url}'; "
+        "else "
+        f"firefox --new-window '{virtual_joystick_url}'; "
+        "fi"
+    )
     joystick_process = ExecuteProcess(
         cmd=[
             "/usr/bin/env",
