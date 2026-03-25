@@ -454,6 +454,8 @@
 
     <!-- BATTERY -->
 
+    <!-- TO DO: The base link should NOT include the battery, 
+    The mass should be removed from the base link and added here-->
     <link name='battery_link'>
       <!-- Inertial properties of battery accounted for in the
            inertial properties of the base link  -->
@@ -479,6 +481,84 @@
       <parent>base_link</parent>
       <child>battery_link</child>
     </joint>
+
+
+    <!-- ACU -->
+
+    <link name='acu_tilt_link'>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose> <!-- TO DO: Adjust pose based on CAD/Excel-->
+        <mass>2.9</mass>
+        <inertia>
+          <ixx>1e-05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>1e-05</iyy>
+          <iyz>0</iyz>
+          <izz>1e-05</izz>
+        </inertia>
+      </inertial>
+    </link>
+
+    <joint name='acu_tilt_joint' type='prismatic'>
+      <pose>0 -0.318 0.044 0 0 0</pose> <!--CHECK AXIS DEFINITION-->
+      <parent>base_link</parent>
+      <child>acu_tilt_link</child>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-0.393</lower> <!-- Minimum position (in meters) -->
+          <upper>-0.243</upper>  <!-- Maximum position (in meters) -->
+          <effort>10.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
+          <velocity>0.5</velocity> <!-- Maximum velocity (optional, in meters/second) -->
+        </limit>
+      </axis>
+    </joint>
+
+    <link name='acu_roll_link'>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose> <!-- TO DO: Adjust pose based on CAD/Excel-->
+        <mass>3.5</mass>
+        <inertia>
+          <ixx>1e-05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>1e-05</iyy>
+          <iyz>0</iyz>
+          <izz>1e-05</izz>
+        </inertia>
+      </inertial>
+      <battery name='battery_acu_roll'>
+        <voltage>4.2</voltage>
+      </battery>
+    </link>
+
+    <joint name='acu_roll_joint' type='revolute'>
+      <pose>0 -0.4 -0.07 0 0 0</pose> <!--CHECK AXIS DEFINITION-->
+      <parent>base_link</parent>
+      <child>acu_roll_link</child>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>-0.5236</lower> <!-- Minimum position (in degrees) -->
+          <upper>0.5236</upper>  <!-- Maximum position (in degrees) -->
+          <effort>10.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
+          <velocity>0.5</velocity> <!-- Maximum velocity (optional, in meters/second) -->
+        </limit>
+      </axis>
+    </joint>
+
+    <plugin
+      filename="gz-sim-joint-controller-system"
+      name="gz::sim::systems::JointController">
+      <joint_name>acu_tilt_joint</joint_name>
+    </plugin>
+
+    <plugin
+      filename="gz-sim-joint-controller-system"
+      name="gz::sim::systems::JointController">
+      <joint_name>acu_roll_joint</joint_name>
+    </plugin>
 
     <plugin
       filename="gz-sim-linearbatteryplugin-system"

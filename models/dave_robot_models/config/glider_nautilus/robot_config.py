@@ -21,8 +21,8 @@ def launch_setup(context, *args, **kwargs):
         f"/model/{namespace}/buoyancy_engine/current_volume@std_msgs/msg/Float64@gz.msgs.Double",
         f"/world/oceans_waves/model/{namespace}/joint_state@sensor_msgs/msg/JointState@gz.msgs.Model",
         f"/world/oceans_waves/model/{namespace}/joint_state@sensor_msgs/msg/JointState@gz.msgs.Model",
-        f"/model/{namespace}/joint/acu_roll_joint/0/cmd_pos@std_msgs/msg/Float64@gz.msgs.Double",
-        f"/model/{namespace}/joint/battery_joint/0/cmd_pos@std_msgs/msg/Float64@gz.msgs.Double",
+        f"/model/{namespace}/joint/acu_roll_joint/cmd_pos@std_msgs/msg/Float64@gz.msgs.Double", #ACU roll command in radians
+        f"/model/{namespace}/joint/acu_tilt_joint/cmd_pos@std_msgs/msg/Float64@gz.msgs.Double", #ACU tilt command in mm
         f"/{namespace}/sea_pressure@sensor_msgs/msg/FluidPressure@gz.msgs.FluidPressure",
         f"/world/oceans_waves/model/{namespace}/joint_state@sensor_msgs/msg/JointState@gz.msgs.Model",
     ]
