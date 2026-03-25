@@ -10,6 +10,9 @@ nautilus_bcu_bridge:
     m3_per_rev: 0.32e-6
     max_capacity_m3: 0.0025
     min_capacity_m3: 0.0010
+    fault_probability_bcu: 0.0166 # MTTF: 60s (1/f_prob)
+    fault_duration_sec_bcu: 10
+
 
 # These nodes will now automatically inherit 'model_name' from the /** block
 nautilus_external_sensor_bridge:

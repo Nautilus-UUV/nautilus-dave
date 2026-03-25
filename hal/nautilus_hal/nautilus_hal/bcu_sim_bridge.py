@@ -8,6 +8,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32, Float64, Int32
 
 from .constants import Conversions, SimTopics
+from .fault_injection import RPMFaultInjector
 
 
 class BCUSimBridge(Node):
@@ -23,8 +24,20 @@ class BCUSimBridge(Node):
         self.m3_per_rev = self.get_parameter("m3_per_rev").value
         self.max_capacity = self.get_parameter("max_capacity_m3").value
         self.min_capacity = self.get_parameter("min_capacity_m3").value
+        self.fault_probability = self.get_parameter("fault_probability_bcu").value
+        self.fault_duration_sec = self.get_parameter("fault_duration_sec_bcu").value
 
         self.current_volume = 0.0
+
+        # ====================
+        # Fault Injection
+        # ====================
+        self.rpm_fault_injector = RPMFaultInjector(
+            self,
+            fault_topic="/bcu/rpm/fault",
+            fault_probability=self.fault_probability,
+            fault_duration_sec=self.fault_duration_sec,
+        )
 
         # ====================
         # BCU RPM/flow control
@@ -61,8 +74,10 @@ class BCUSimBridge(Node):
         dt = (now - self.last_time).nanoseconds / 1e9
         self.last_time = now
 
+        raw_rpm = float(msg.data)
+        rpm = self.rpm_fault_injector.apply(raw_rpm)
+
         # rpm -> rps -> total revs in dt -> volume change
-        rpm = float(msg.data)
         rps = rpm / 60.0
         delta_vol = rps * self.m3_per_rev * dt
 
