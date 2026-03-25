@@ -33,7 +33,7 @@
         </inertia> -->
 
         <pose>0 0.528 -0.00768 0 0 0</pose>
-        <mass>58.245</mass>
+        <mass>51.845</mass><!--from 58.245 (minus 6.4 ACU) to 51.845-->
         <inertia>
           <ixx>10.24</ixx>
           <ixy>-0.004930</ixy>
