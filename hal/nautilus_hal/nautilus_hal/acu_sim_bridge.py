@@ -36,7 +36,7 @@ class ACUSimBridge(Node):
         self.roll_sub = create_subscription_for_topic(
             self, UUVTopics.ACU_ROLL, self.roll_callback
         )
-        self.roll_pub = create_publisher_for_topic(self, UUVTopics.ACU_ROLL_COMMAND)
+        self.sim_roll_pub = self.create_publisher(Float64, SimTopics.ACU_ROLL_COMMAND.format(model_name=model_name), 10)
 
         # ==============
         # ACU tilt control
@@ -44,24 +44,25 @@ class ACUSimBridge(Node):
         self.tilt_sub = create_subscription_for_topic(
             self, UUVTopics.ACU_TILT, self.tilt_callback
         )
-        self.tilt_pub = create_publisher_for_topic(self, UUVTopics.ACU_TILT_COMMAND)
+        self.sim_tilt_pub = self.create_publisher(Float64, SimTopics.ACU_TILT_COMMAND.format(model_name=model_name), 10)
         
         # 10 Hz pub timer to throttle data
         #self.pub_timer = self.create_timer(0.1, self.publish_at_rate)
     
         self.get_logger().info(f"Nautilus ACU Bridge: Listening on {UUVTopics.ACU_ROLL}")
+        self.get_logger().info(f"Nautilus ACU Bridge: Listening on {UUVTopics.ACU_TILT}")
 
     def roll_callback(self, msg):
 
         roll_msg = Float64()
         roll_msg.data = msg.data  # ROS is in radians, Gazebo expects radians, so no conversion needed
-        self.roll_pub.publish(roll_msg)
+        self.sim_roll_pub.publish(roll_msg)
     
     def tilt_callback(self, msg):
         
         tilt_msg = Float64()
         tilt_msg.data = msg.data * Conversions.CM_TO_M  # ROS is in mm, Gazebo expects m, so convert
-        self.tilt_pub.publish(tilt_msg)
+        self.sim_tilt_pub.publish(tilt_msg)
 
     """def publish_at_rate(self):
         bcu_pressure_msg = Int32(data=self.latest_volume)
