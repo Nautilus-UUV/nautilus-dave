@@ -33,5 +33,12 @@ def generate_launch_description():
                 output="screen",
                 parameters=[config],
             ),
+            Node(
+                package="nautilus_hal",
+                executable="acu_sim_bridge",
+                name="nautilus_acu_bridge",
+                output="screen",
+                parameters=[config],
+            ),
         ]
     )
