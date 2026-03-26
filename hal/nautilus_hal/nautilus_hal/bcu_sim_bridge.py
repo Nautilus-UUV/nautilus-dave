@@ -8,7 +8,7 @@ from rclpy.node import Node
 from std_msgs.msg import Float32, Float64, Int32
 
 from .constants import Conversions, SimTopics
-from .fault_injection import RPMFaultInjector
+from .fault_injection import BCUFaultInjector
 
 
 class BCUSimBridge(Node):
@@ -32,7 +32,7 @@ class BCUSimBridge(Node):
         # ====================
         # Fault Injection
         # ====================
-        self.rpm_fault_injector = RPMFaultInjector(
+        self.rpm_fault_injector = BCUFaultInjector(
             self,
             fault_topic="/bcu/rpm/fault",
             fault_probability=self.fault_probability,

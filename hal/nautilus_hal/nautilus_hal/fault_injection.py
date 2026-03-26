@@ -85,7 +85,7 @@ class BaseFaultInjector(ABC):
         pass
 
 
-class RPMFaultInjector(BaseFaultInjector):
+class BCUFaultInjector(BaseFaultInjector):
     """
     Specific implementation for RPM faults with telemetry masking.
     """
