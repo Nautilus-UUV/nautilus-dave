@@ -1166,6 +1166,8 @@ void MultibeamSonarSensor::Implementation::ComputeSonarImage()
 
   rclcpp::Time now = this->ros_node_->now();
 
+  this->sonarRawDataMsg = marine_acoustic_msgs::msg::ProjectedSonarImage();
+
   this->sonarRawDataMsg.header.frame_id = this->frameId;
 
   this->sonarRawDataMsg.header.stamp.sec = static_cast<int32_t>(now.seconds());
