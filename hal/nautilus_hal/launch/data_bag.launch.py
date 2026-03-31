@@ -1,22 +1,26 @@
 import os
 from datetime import datetime
 
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import ExecuteProcess, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
 
 
-def is_running_in_docker():
-    """Helper function to detect Docker environment."""
-    return os.path.exists("/.dockerenv")
+def is_running_in_container():
+    """Helper function to detect Docker or Apptainer/Singularity environment."""
+    return (
+        os.path.exists("/.dockerenv")
+        or "APPTAINER_CONTAINER" in os.environ
+        or "SINGULARITY_CONTAINER" in os.environ
+    )
 
 
 def generate_launch_description():
     time_str = datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
 
-    if is_running_in_docker():
+    if is_running_in_container():
         bag_path = f"/ros2_ws/sim_data/raw/dive_{time_str}"
     else:
         bag_path = f"./sim_data/raw/dive_{time_str}"
@@ -28,7 +32,7 @@ def generate_launch_description():
                 PythonLaunchDescriptionSource(
                     [
                         os.path.join(
-                            FindPackageShare("nautilus_hal").find("nautilus_hal"),
+                            get_package_share_directory("nautilus_hal"),
                             "launch",
                             "bridge.launch.py",
                         )
@@ -49,7 +53,7 @@ def generate_launch_description():
                 PythonLaunchDescriptionSource(
                     [
                         os.path.join(
-                            FindPackageShare("dave_demos").find("dave_demos"),
+                            get_package_share_directory("dave_demos"),
                             "launch",
                             "dave_robot.launch.py",
                         )
