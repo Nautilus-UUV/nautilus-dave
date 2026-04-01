@@ -46,12 +46,15 @@
       </inertial>
 
       <visual name="base_link_visual">
-        <pose>0 0 0 0 0 1.5708</pose>
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
             <!-- Model without wings and rudder. Frame corresponds to frame in 
-            OnShape master assembly (version without scientific unit) -->
-            <uri>model://meshes/glider_nautilus/nautilus_glider_nw_v03.dae</uri>
+                 the spreadsheet: a NED coordinate system located at the geometric
+                 centre point of the hull shell cylinder. The mesh file below has
+                 been adapted so that its coordinate system aligned with this 
+                 convention -->
+            <uri>model://meshes/glider_nautilus/nautilus_glider_nw_v04.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -140,10 +143,10 @@
            For now simply rest at base link -->
       
       <visual name="LeftFin_visual">
-        <pose>0 0 0 0 0 1.5708</pose>
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://meshes/glider_nautilus/nautilus_glider_wing_l_v03.dae</uri>
+            <uri>model://meshes/glider_nautilus/nautilus_glider_wing_l_v04.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -202,10 +205,10 @@
     <link name="RightFin_link">
       
       <visual name="RightFin_visual">
-        <pose>0 0 0 0 0 1.5708</pose>
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://meshes/glider_nautilus/nautilus_glider_wing_r_v03.dae</uri>
+            <uri>model://meshes/glider_nautilus/nautilus_glider_wing_r_v04.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -261,15 +264,27 @@
 
     <!-- TOP RUDDER -->
 
+    <!-- Top rudder should be movable. First define this joint that
+         the rudder's axis of rotation passes through -->
+
+    <joint name="TopRudder_joint" type="fixed">
+      <pose relative_to="base_link">-0.899156 0 -0.119 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>TopRudder_link</child>
+    </joint>
+
     <link name="TopRudder_link">
+
+      <!-- Link (ie rudder body) has its coordinate system right
+           on the rudder joint -->
 
       <pose relative_to="TopRudder_joint">0 0 0 0 0 0</pose>
       
+      <!-- Integrates the mesh files of the rudder -->
       <visual name="Rudder_visual">
-        <pose>0.1 0 0.2 0 0 1.5708</pose>
         <geometry>
           <mesh>
-            <uri>model://meshes/glider_nautilus/nautilus_glider_rudder_v04.dae</uri>
+            <uri>model://meshes/glider_nautilus/nautilus_glider_rudder_v05.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -283,7 +298,9 @@
            centre of pressure passed to the lift drag plugin. Insert 
            the same position in the pose tag. -->
       <visual name="centre_of_pressure_marker">
-        <pose relative_to="TopRudder_link">0 0.04 -0.1 0 0 0</pose>
+        <!-- Pose of the 'centre of pressure' in the local coordinates
+             of the TopRudder_link, also a NED coordinate system -->
+        <pose relative_to="TopRudder_link">-0.04 0 -0.1 0 0 0</pose>
         <geometry>
           <sphere>
             <radius>0.01</radius>
@@ -297,12 +314,6 @@
       </visual>
 
     </link>
-
-    <joint name="TopRudder_joint" type="fixed">
-      <pose relative_to="base_link">-1.404 0 -0.119 0 0 0</pose>
-      <parent>base_link</parent>
-      <child>TopRudder_link</child>
-    </joint>
 
     <!-- Started to implement a movable rudder -->
 
