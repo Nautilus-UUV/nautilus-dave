@@ -160,7 +160,7 @@
            centre of pressure passed to the lift drag plugin. Insert 
            the same position in the pose tag. -->
       <visual name="centre_of_pressure_marker">
-        <pose>1.205 -0.408 0 0 0 0</pose>
+        <pose>-0.7 -0.408 0 0 0 0</pose>
         <geometry>
           <sphere>
             <radius>0.01</radius>
@@ -197,7 +197,7 @@
       <link_name>LeftFin_link</link_name>
       <!-- cp determines the centre of pressure in the link frame,
            i.e. wher the aerodynamic forces are applied -->
-      <cp>-1.205 -0.408  0</cp>
+      <cp>-0.7 -0.408 0</cp>
     </plugin>
 
     <!-- RIGHT FIN -->
@@ -222,7 +222,7 @@
            centre of pressure passed to the lift drag plugin. Insert 
            the same position in the pose tag. -->
       <visual name="centre_of_pressure_marker">
-        <pose>1.205 0.408  0 0 0 0</pose>
+        <pose>-0.7 0.408  0 0 0 0</pose>  <!-- -1.205 0.408  0 0 0 0 -->
         <geometry>
           <sphere>
             <radius>0.01</radius>
@@ -259,7 +259,7 @@
       <link_name>RightFin_link</link_name>
       <!-- cp determines the centre of pressure in the link frame,
            i.e. wher the aerodynamic forces are applied -->
-      <cp>-1.205 0.408 0</cp>
+      <cp>-0.7 0.408  0</cp>
     </plugin>
 
     <!-- TOP RUDDER -->
