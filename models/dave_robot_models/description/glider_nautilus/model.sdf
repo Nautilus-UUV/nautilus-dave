@@ -65,13 +65,34 @@
         </material>
       </visual>
 
-      <!-- Box visualising where the bouyant volume of the
-      hull is. Not functional -->
-      <!-- <visual name="buoyancy_box">
-        <pose>0 0.5 0 0 0 0</pose>
+      <collision name="base_link_collision">
+        <!-- This determines the buoyancy of the hull
+             Specifically, this is the volume displaced by the hull shell and
+             the two bulkheads when assembled into one geometric object. Looking
+             at the geometry in the HS25_Master_Assembly_Nautilus, this should be
+             about 0.054482 m^3.
+             The NED coordinate system is at the geometric centre of the hull
+             so the buoyancy forces from the hull coincide with the origin.
+             The buoyancy plugin only supports collision geometries made of boxes
+             and spheres. The volume is modelled as a box with a volume of about
+             0.0544 m^3 centred at the origin. -->
+        <pose>0.0 0 0 0 0 0</pose>
         <geometry>
           <box>
-            <size>0.230217 1.190528 0.230217</size> 
+            <!-- x y and z dimensions of the box (refers to base_link coordinates) -->
+            <size>1.007723 0.232517 0.232517</size>  
+          </box>
+        </geometry>
+      </collision>
+
+      <!-- Box visualising where the bouyant volume of the
+           hull is. Not functional, simply an optional sanity check. 
+           Uncomment to show. -->
+      <!-- <visual name="buoyancy_box">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>1.007723 0.232517 0.232517</size> 
           </box>
         </geometry>
         <material>
@@ -81,18 +102,6 @@
         </material>
       </visual> -->
 
-      <collision name="base_link_collision">
-        <!-- This determines the buoyancy.
-             Hull starts at base frame, centre 0.5m from base frame -->
-        <pose>0.027 0 0 0 0 0</pose>
-        <geometry>
-          <box>
-            <!-- Volume 0.053m^3 + 0.010098m^3 ie. volume of the hull
-            plus the volume needed to compensate for neutrall buoyant parts-->
-            <size>1.190528 0.230217 0.230217</size>  
-          </box>
-        </geometry>
-      </collision>
     </link>
 
     <plugin

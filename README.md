@@ -96,7 +96,7 @@ ros2 run py_pkg bcu_oscillator
 ``` 
 3. The DAVE simulation with Nautilus
 ```bash
-ros2 launch dave_demos dave_robot.launch.py z:=-5 roll:=3.141592653589793 yaw:=1.5707963267948966 namespace:=glider_nautilus world_name:=dave_ocean_waves paused:=truepaused:=false
+ros2 launch dave_demos dave_robot.launch.py z:=-5 roll:=3.141592653589793 yaw:=1.5707963267948966 namespace:=glider_nautilus world_name:=dave_ocean_waves paused:=false
 ```
 <!-- The roll and pitch are necessary because Gazebos world coordinate system uses ENU while 
      the convention for the glider has been determined to be NED -->
