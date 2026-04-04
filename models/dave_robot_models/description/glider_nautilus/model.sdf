@@ -8,32 +8,34 @@
 
     <link name="base_link">
       <inertial>
-        <!-- Inertial without ACU -->
-        <!-- <pose>-0.001 0.501 -0.004 0 0 0</pose>
-        <mass>56.007</mass>
-        <inertia>
-          <ixx>9.027</ixx>
-          <ixy>-0.004407</ixy>
-          <ixz>0.004285</ixz>
-          <iyy>0.796176</iyy>
-          <iyz>-0.148290</iyz>
-          <izz>9.19</izz>
-        </inertia> -->
-        
-        <!-- Inertial with ACU -->
-        <!-- <pose>0 0.54447 -0.00768 0 0 0</pose>
-        <mass>62.845</mass>
-        <inertia>
-          <ixx>10.24</ixx>
-          <ixy>-0.004930</ixy>
-          <ixz>0.003058</ixz>
-          <iyy>0.902550</iyy>
-          <iyz>0.027482</iyz>
-          <izz>10.32</izz>
-        </inertia> -->
 
-        <pose>0.074 0 -0.00768 0 0 0</pose>
-        <mass>51.845</mass><!--from 58.245 (minus 6.4 ACU) to 51.845-->
+        <!-- Pose of the Centre of Mass in the NED base_link frame
+             Calculated in Onshape together with the moment of inertia matrix 
+             (see below) -->
+
+        <pose>0.054298 0 0.005978 0 0 0</pose>
+
+        <!-- Moment of inertia matrix
+             Taken around the Centre of Mass in the NED coordinate system.
+             The values come from the HS25_Master_Assembly_Nautilus (as of 04.04.26)
+             and contain the contributions of all parts except:
+             * The moving parts of the Pitch ACU
+             * The moving parts of the Roll ACU
+             * The Blade of the rudder -->
+
+        <mass>54.777</mass>
+        <inertia>
+          <ixx>0.569665165</ixx>
+          <ixy>0.014586839</ixy>
+          <ixz>-0.135434148</ixz>
+          <iyy>7.792</iyy>
+          <iyz>0.003389589</iyz>
+          <izz>7.738</izz>
+        </inertia>
+
+        <!-- PREVISOULY -->
+        <!-- <pose>0.074 0 -0.00768 0 0 0</pose>
+        <mass>51.845</mass> from 58.245 (minus 6.4 ACU) to 51.845 
         <inertia>
           <ixx>10.24</ixx>
           <ixy>-0.004930</ixy>
@@ -41,7 +43,7 @@
           <iyy>0.902550</iyy>
           <iyz>0.027482</iyz>
           <izz>10.32</izz>
-        </inertia>
+        </inertia> -->
         
       </inertial>
 
@@ -49,11 +51,10 @@
         <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <!-- Model without wings and rudder. Frame corresponds to frame in 
-                 the spreadsheet: a NED coordinate system located at the geometric
-                 centre point of the hull shell cylinder. The mesh file below has
-                 been adapted so that its coordinate system aligned with this 
-                 convention -->
+            <!-- Model without wings and rudder. Frame corresponds to a NED 
+                 coordinate system located at the geometric centre point of 
+                 the hull shell cylinder. The mesh file below has
+                 a coordinate system aligned with this convention -->
             <uri>model://meshes/glider_nautilus/nautilus_glider_nw_v04.dae</uri>
           </mesh>
         </geometry>
