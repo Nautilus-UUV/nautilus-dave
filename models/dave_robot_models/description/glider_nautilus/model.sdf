@@ -4,7 +4,9 @@
 
     <static>false</static>
 
+    <!--           -->
     <!-- BASE LINK -->
+    <!--           -->
 
     <link name="base_link">
       <inertial>
@@ -21,7 +23,9 @@
              and contain the contributions of all parts except:
              * The moving parts of the Pitch ACU
              * The moving parts of the Roll ACU
-             * The Blade of the rudder -->
+             * The Blade of the rudder 
+             Since the Onshape assmebly did likely not include the oil mass, the total
+             mass and moments reported here also do not include it -->
 
         <mass>54.777</mass>
         <inertia>
@@ -88,7 +92,7 @@
       <!-- Box visualising where the bouyant volume of the
            hull is. Not functional, simply an optional sanity check. 
            Uncomment to show. -->
-      <!-- <visual name="buoyancy_box">
+      <visual name="buoyancy_box">
         <pose>0 0 0 0 0 0</pose>
         <geometry>
           <box>
@@ -100,7 +104,7 @@
           <diffuse>0 1 0 0.8</diffuse>
           <specular>0 1 0 0.8</specular>
         </material>
-      </visual> -->
+      </visual>
 
     </link>
 
@@ -146,7 +150,64 @@
       <nRabsR>0</nRabsR>
     </plugin>
 
+    <!--     -->
+    <!-- BOW -->
+    <!--     -->
+
+    <!-- This is its own link because the Nautilus_Technical_Details spreadsheet
+         does not specify how the bow contributes to the weight and balance of 
+         the UUV. It is assumed that the bow is neutrally buoyant. To achieve
+         this, volume is added to this link at the exact point where the mechanical
+         components forming the bow assmbly have their centre of gravity  -->
+
+    <joint name="bow_link" type="fixed"> 
+      <pose>0.626106 -0.005972 0.009584 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>bow</child>
+    </joint>
+
+    <link name="bow">
+      <!-- The bow does not include the BCU bladder.
+           This link has no mass since its contribution to the centre of mass and 
+           the moment of inertia matrix have already been accounted for in the base_link -->
+      
+      <collision name="base_link_collision">
+        <!-- Volume needed to make sure that the bow in neutrally bouyant.
+             According to the onshape master assembly (07.04.26) the bow has a mass of 3.022kg
+             Assuming a density of 1.025 kg/l for seawater, this yields a displaced volume of 
+             about 2.948 liters.
+             Using a sidelength of 0.143392, the corresponding cube will have the desired 
+             volume -->
+        <pose relative_to="bow_link">0.0 0 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.143392 0.143392 0.143392</size>  
+          </box>
+        </geometry>
+      </collision>
+
+      <!-- Box visualising where the bouyant volume of the bow
+           is. Not functional, simply an optional sanity check. 
+           Uncomment to show. -->
+      <visual name="buoyancy_box">
+        <pose relative_to="bow_link">0 0 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.143392 0.143392 0.143392</size> 
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 1 0 0.8</ambient>
+          <diffuse>0 1 0 0.8</diffuse>
+          <specular>0 1 0 0.8</specular>
+        </material>
+      </visual>
+
+    </link>
+
+    <!--          -->
     <!-- LEFT FIN -->
+    <!--          -->
 
     <link name="LeftFin_link">
       <!-- Frame for aerodynamic forces of left wing. 
@@ -210,7 +271,9 @@
       <cp>-0.7 -0.408 0</cp>
     </plugin>
 
+    <!--           -->
     <!-- RIGHT FIN -->
+    <!--           -->
 
     <link name="RightFin_link">
       
@@ -271,8 +334,10 @@
            i.e. wher the aerodynamic forces are applied -->
       <cp>-0.7 0.408  0</cp>
     </plugin>
-
+    
+    <!--            -->
     <!-- TOP RUDDER -->
+    <!--            -->
 
     <!-- Top rudder should be movable. First define this joint that
          the rudder's axis of rotation passes through -->
@@ -443,7 +508,9 @@
       <namespace>glider_nautilus</namespace>
     </plugin>
 
+    <!--     -->
     <!-- IMU -->
+    <!--     -->
 
     <link name="imu_link">
       <inertial>
@@ -476,7 +543,9 @@
       name="gz::sim::systems::Imu">
     </plugin>
 
+    <!--         -->
     <!-- BATTERY -->
+    <!--         -->
 
     <!-- TO DO: The base link should NOT include the battery, 
     The mass should be removed from the base link and added here-->
@@ -506,8 +575,9 @@
       <child>battery_link</child>
     </joint>
 
-
+    <!--     -->
     <!-- ACU -->
+    <!--     -->
 
     <link name='acu_tilt_link'>
       <inertial>
@@ -600,7 +670,9 @@
       <start_on_motion>true</start_on_motion>
     </plugin>
 
+    <!--        -->
     <!-- NAVSAT -->
+    <!--        -->
 
     <link name="navsat_link">
       <inertial>
@@ -634,7 +706,9 @@
       name="gz::sim::systems::NavSat">
     </plugin>
 
+    <!--               -->
     <!-- OTHER PLUGINS -->
+    <!--               -->
 
     <plugin
       filename="gz-sim-odometry-publisher-system"
