@@ -419,15 +419,30 @@
         </geometry>
       </visual>
       <inertial>
-        <mass>2.1825</mass>
+        <mass>2.185</mass>
       </inertial>
     </link>
 
-    <joint name="oil_weigth_joint" type="fixed">
-      <pose>0 0 0 0 0 0</pose>
+    <joint name='oil_weight_joint' type='prismatic'>
+      <pose>0.293 0 0.036 0 0 0</pose> <!--CHECK AXIS DEFINITION-->
       <parent>base_link</parent>
       <child>oil_weight_link</child>
+      <axis>
+        <xyz>0.9931947 0  -0.11646583</xyz>
+        <limit>
+          <lower>0</lower> <!-- Minimum position (in meters) -->
+          <upper>0.3091</upper>  <!-- Maximum position (in meters) -->
+          <!-- TODO Rate limiting for the movement of the joint-->
+        </limit>
+      </axis>
     </joint>
+
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>oil_weight_joint</joint_name>
+      <p_gain>10</p_gain>
+    </plugin>
 
     <plugin
       filename="gz-sim-buoyancy-engine-system"

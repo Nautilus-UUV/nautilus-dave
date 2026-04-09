@@ -26,3 +26,4 @@ class SimTopics:
     SEA_PRESSURE = "/model/{model_name}/sea_pressure"
     SEA_PRESSURE_DEPTH = "/model/{model_name}/sea_pressure_depth"
     IMU = "/model/{model_name}/imu"
+    OIL_WEIGHT_COMMAND = "/model/{model_name}/oil_weight_joint/cmd_pos"

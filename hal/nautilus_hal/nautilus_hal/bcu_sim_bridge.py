@@ -53,6 +53,11 @@ class BCUSimBridge(Node):
             Float64, SimTopics.BUOYANCY_COMMAND.format(model_name=model_name), 10
         )
 
+        
+        self.sim_oil_weight_pub = self.create_publisher(
+            Float64, SimTopics.OIL_WEIGHT_COMMAND.format(model_name=model_name), 10
+        )
+
         self.get_logger().info(f"Nautilus BCU Bridge: Listening on {UUVTopics.BCU_RPM}")
 
     def rpm_callback(self, msg):
@@ -71,9 +76,14 @@ class BCUSimBridge(Node):
             self.min_capacity, min(self.current_volume, self.max_capacity)
         )
 
-        out_msg = Float64()
-        out_msg.data = self.current_volume
-        self.sim_volume_pub.publish(out_msg)
+        out_msg_volume = Float64()
+        out_msg_volume.data = self.current_volume
+        self.sim_volume_pub.publish(out_msg_volume)
+        
+        out_msg_weight = Float64()
+        out_msg_weight.data = self.current_volume/self.max_capacity*0.3091
+        self.sim_oil_weight_pub.publish(out_msg_weight)
+
 
         # Mock Flow Rate feedback (m3/s)
         flow_msg = Float32()
