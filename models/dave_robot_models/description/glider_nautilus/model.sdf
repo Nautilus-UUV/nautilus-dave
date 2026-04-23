@@ -12,10 +12,10 @@
       <inertial>
 
         <!-- Pose of the Centre of Mass in the NED base_link frame
-             Calculated in Onshape together with the moment of inertia matrix 
-             (see below) -->
+             This comes from the Technical_Details spreadsheet (22.04.)
+             without the contribution from ACU and oil mass -->
 
-        <pose>0.054298 0 0.005978 0 0 0</pose>
+        <pose>0.066 0 0.013 0 0 0</pose>
 
         <!-- Moment of inertia matrix
              Taken around the Centre of Mass in the NED coordinate system.
@@ -24,10 +24,9 @@
              * The moving parts of the Pitch ACU
              * The moving parts of the Roll ACU
              * The Blade of the rudder 
-             Since the Onshape assmebly did likely not include the oil mass, the total
-             mass and moments reported here also do not include it -->
+             Since the Onshape assmebly did likely not include the oil mass, it is not
+             part of the moments of inertia matrix -->
 
-        <mass>54.777</mass>
         <inertia>
           <ixx>0.569665165</ixx>
           <ixy>0.014586839</ixy>
@@ -37,17 +36,21 @@
           <izz>7.738</izz>
         </inertia>
 
-        <!-- PREVISOULY -->
-        <!-- <pose>0.074 0 -0.00768 0 0 0</pose>
-        <mass>51.845</mass> from 58.245 (minus 6.4 ACU) to 51.845 
-        <inertia>
-          <ixx>10.24</ixx>
-          <ixy>-0.004930</ixy>
-          <ixz>0.003058</ixz>
-          <iyy>0.902550</iyy>
-          <iyz>0.027482</iyz>
-          <izz>10.32</izz>
-        </inertia> -->
+        <fluid_added_mass>
+          <xx>5.30023995</xx>
+          <yy>98.529516</yy>
+          <zz>110.543023</zz>
+          <pp>1.46943124</pp>
+          <qq>20.2676439</qq>
+          <rr>16.1139805</rr>
+        </fluid_added_mass>
+
+        <!-- Mass from the Technical_Details spreadsheet
+             This does not include:
+             * Movable ACU masses
+             * Oil mass -->
+
+        <mass>44.637</mass>
         
       </inertial>
 
@@ -92,7 +95,7 @@
       <!-- Box visualising where the bouyant volume of the
            hull is. Not functional, simply an optional sanity check. 
            Uncomment to show. -->
-      <visual name="buoyancy_box">
+      <!-- <visual name="buoyancy_box">
         <pose>0 0 0 0 0 0</pose>
         <geometry>
           <box>
@@ -104,7 +107,7 @@
           <diffuse>0 1 0 0.8</diffuse>
           <specular>0 1 0 0.8</specular>
         </material>
-      </visual>
+      </visual> -->
 
     </link>
 
@@ -129,11 +132,11 @@
 
       <!-- Linear Drag Coefficients -->
       <!-- diagonal terms -->
-      <xU>-8</xU>
-      <yV>-108</yV>
+      <xU>-108</xU>
+      <yV>-8</yV>
       <zW>-162</zW>
-      <kP>-32</kP>
-      <mQ>-13</mQ>
+      <kP>-13</kP>
+      <mQ>-32</mQ>
       <nR>-20</nR>
       <!-- cross terms -->
       <!-- <yR>150</yR>
@@ -149,57 +152,88 @@
       <mQabsQ>0</mQabsQ>
       <nRabsR>0</nRabsR>
     </plugin>
+    
+    <!--              -->
+    <!-- TRIMMING BOW -->
+    <!--              -->
 
-    <!--     -->
-    <!-- BOW -->
-    <!--     -->
+    <!-- A rigidly attached link providing the additional buoyancy
+         or mass needed to make the glider float correctly -->
 
-    <!-- This is its own link because the Nautilus_Technical_Details spreadsheet
-         does not specify how the bow contributes to the weight and balance of 
-         the UUV. It is assumed that the bow is neutrally buoyant. To achieve
-         this, volume is added to this link at the exact point where the mechanical
-         components forming the bow assmbly have their centre of gravity  -->
-
-    <joint name="bow_link" type="fixed"> 
-      <pose>0.626106 -0.005972 0.009584 0 0 0</pose>
+    <joint name="trimming_bow_joint" type="fixed">
+      <pose>0.65 0 0 0 0 0</pose>
       <parent>base_link</parent>
-      <child>bow</child>
+      <child>trimming_bow</child>0 0 0 
     </joint>
 
-    <link name="bow">
-      <!-- The bow does not include the BCU bladder.
-           This link has no mass since its contribution to the centre of mass and 
-           the moment of inertia matrix have already been accounted for in the base_link -->
+    <link name="trimming_bow">
+
+      <pose>0.65 0 0 0 0 0</pose>
       
-      <collision name="base_link_collision">
-        <!-- Volume needed to make sure that the bow in neutrally bouyant.
-             According to the onshape master assembly (07.04.26) the bow has a mass of 3.022kg
-             Assuming a density of 1.025 kg/l for seawater, this yields a displaced volume of 
-             about 2.948 liters.
-             Using a sidelength of 0.143392, the corresponding cube will have the desired 
-             volume -->
-        <pose relative_to="bow_link">0.0 0 0 0 0 0</pose>
+      <collision name="bow_trimming_foam_collision">
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <box>
-            <size>0.143392 0.143392 0.143392</size>  
+            <size>0.065 0.18 0.18</size>
           </box>
         </geometry>
       </collision>
 
-      <!-- Box visualising where the bouyant volume of the bow
-           is. Not functional, simply an optional sanity check. 
-           Uncomment to show. -->
-      <visual name="buoyancy_box">
-        <pose relative_to="bow_link">0 0 0 0 0 0</pose>
+      <visual name="bow_trimming_foam_visual">
         <geometry>
           <box>
-            <size>0.143392 0.143392 0.143392</size> 
+            <size>0.065 0.15 0.15</size>
           </box>
         </geometry>
         <material>
-          <ambient>0 1 0 0.8</ambient>
-          <diffuse>0 1 0 0.8</diffuse>
-          <specular>0 1 0 0.8</specular>
+          <ambient>0 0 1 0.8</ambient>
+          <diffuse>0 0 1 0.8</diffuse>
+          <specular>0 0 1 0.8</specular>
+        </material>
+      </visual>
+
+    </link>
+
+    <!--                -->
+    <!-- TRIMMING STERN -->
+    <!--                -->
+
+    <!-- A rigidly attached link providing the additional buoyancy
+         or mass needed to make the glider float correctly. Uncomment
+         and add mass / a collision geometry to activate. -->
+
+    <joint name="trimming_stern_joint" type="fixed">
+      <pose>-0.7 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>trimming_stern</child> 
+    </joint>
+
+    <link name="trimming_stern">
+      
+      <collision name="stern_trimming_foam_collision">
+        <geometry>
+          <box>
+            <size>0.015 0.18 0.18</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <pose>-0.7 0 0 0 0 0</pose>
+
+      <inertial>
+        <mass>0.01</mass>
+      </inertial>
+
+      <visual name="stern_trimming_foam_visual">
+        <geometry>
+          <box>
+            <size>0.015 0.18 0.18</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 0 1 0.8</ambient>
+          <diffuse>0 0 1 0.8</diffuse>
+          <specular>0 0 1 0.8</specular>
         </material>
       </visual>
 
@@ -442,15 +476,17 @@
       <cp>-0.04 0 -0.1</cp>
     </plugin>
 
+    <!--         -->
     <!-- BLADDER -->
+    <!--         -->
 
     <link name="bladder_link">
       <!-- Pose of bladder link in base link frame-->
-      <pose>0.5 0 0 0 0 0</pose>
+      <pose>0.6 0 0 0 0 0</pose>
       <visual name="bladder_link_visual">
         <geometry>
           <sphere>
-            <radius>0.1</radius>
+            <radius>0.05</radius>
           </sphere>
         </geometry>
         <material>
@@ -474,7 +510,7 @@
     <link name="oil_weight_link">
       <!--Oil positioned in the middle between the 
       tank and the bladder. Static. Position in base_link coord-->
-      <pose>0.2 0 -0.0185 0 0 0</pose>
+      <pose>0.4125 0 0.018 0 0 0</pose>
       <visual name="oil_weight_marker">
         <pose>0 0 0 0 0 0</pose>
         <geometry>
@@ -500,7 +536,7 @@
       <link_name>bladder_link</link_name>
       <max_inflation_rate>0.0001</max_inflation_rate>
       <min_volume>0.0</min_volume>
-      <max_volume>0.0025</max_volume>
+      <max_volume>0.0025</max_volume>engine
       <neutral_volume>0.0</neutral_volume>
       <default_volume>0.00125</default_volume>
       <fluid_density>1025.0</fluid_density>
@@ -547,10 +583,8 @@
     <!-- BATTERY -->
     <!--         -->
 
-    <!-- TO DO: The base link should NOT include the battery, 
-    The mass should be removed from the base link and added here-->
     <link name='battery_link'>
-      <!-- Inertial properties of battery accounted for in the
+      <!-- Inertial properties of static battery accounted for in the
            inertial properties of the base link  -->
       <!-- <inertial>
         <pose>0 0 0 0 0 0</pose>
@@ -579,10 +613,16 @@
     <!-- ACU -->
     <!--     -->
 
+    <!-- PITCH ACU -->
+
     <link name='acu_tilt_link'>
+
+      <!-- Pitch ACU weight starts in the middle -->
+      <pose>-0.32525 0 -0.0438 0 0 0</pose>
+
       <inertial>
-        <pose>0 0 0 0 0 0</pose> <!-- TO DO: Adjust pose based on CAD/Excel-->
-        <mass>2.9</mass>
+        <!-- <pose relative_to="acu_tilt_joint">0 0 0 0 0 0</pose> -->
+        <mass>1.83</mass>
         <inertia>
           <ixx>1e-05</ixx>
           <ixy>0</ixy>
@@ -592,27 +632,51 @@
           <izz>1e-05</izz>
         </inertia>
       </inertial>
+
+      <!-- Marker for debugging pitch ACU mass position -->
+      <visual name="CM_pitch_ACU_marker">
+        <!-- <pose relative_to="acu_tilt_joint">0 0 0 0 0 0</pose> -->
+        <geometry>
+          <sphere>
+            <radius>0.01</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <ambient>0.9 0 0 0.9</ambient>
+          <diffuse>0.9 0 0 0.9</diffuse>
+          <specular>0 0 0 0.9</specular>
+        </material>
+      </visual>
     </link>
 
     <joint name='acu_tilt_joint' type='prismatic'>
-      <pose>-0.393 0 0.044 0 0 0</pose> <!--CHECK AXIS DEFINITION-->
+      <!-- Updated according to spreadsheet on 22.04. -->
+      <pose>-0.385 0 -0.0438 0 0 0</pose>
       <parent>base_link</parent>
       <child>acu_tilt_link</child>
       <axis>
         <xyz>1 0 0</xyz>
         <limit>
-          <lower>-0.393</lower> <!-- Minimum position (in meters) -->
-          <upper>-0.243</upper>  <!-- Maximum position (in meters) -->
+          <!-- Limits in the joints own coordinate system -->
+          <lower>0</lower> <!-- Minimum position (in meters) -->
+          <upper>-0.1195</upper>  <!-- Maximum position (in meters ) -->
           <effort>10.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
           <velocity>0.5</velocity> <!-- Maximum velocity (optional, in meters/second) -->
         </limit>
       </axis>
     </joint>
 
+    <!-- ROLL ACU -->
+
     <link name='acu_roll_link'>
+      <pose>-0.428 0 0.034 0 0 0</pose>
+
       <inertial>
-        <pose>0 0 0 0 0 0</pose> <!-- TO DO: Adjust pose based on CAD/Excel-->
-        <mass>3.5</mass>
+        <!-- Pose of the centre of mass relative to the pivot.
+             From Onshape 22.04. -->
+        <pose>0 0 0.027 0 0 0</pose>
+        <!-- Mass of roll weight from spreadsheet as of 22.04. -->
+        <mass>4.069</mass>
         <inertia>
           <ixx>1e-05</ixx>
           <ixy>0</ixy>
@@ -625,17 +689,34 @@
       <battery name='battery_acu_roll'>
         <voltage>4.2</voltage>
       </battery>
+
+      <!-- Marker for debugging roll ACU mass position -->
+      <visual name="CM_roll_ACU_marker">
+        <pose>0 0 0.027 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.01</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <ambient>0.9 0 0 0.9</ambient>
+          <diffuse>0.9 0 0 0.9</diffuse>
+          <specular>0 0 0 0.9</specular>
+        </material>
+      </visual>
+
     </link>
 
     <joint name='acu_roll_joint' type='revolute'>
-      <pose>-0.4 0 -0.07 0 0 0</pose> <!--CHECK AXIS DEFINITION-->
+      <!-- Updated according to spreadsheet on 22.04. -->
+      <pose>-0.428 0 0.034 0 0 0</pose> <!--Where the pivot is-->
       <parent>base_link</parent>
       <child>acu_roll_link</child>
       <axis>
         <xyz>1 0 0</xyz>
         <limit>
-          <lower>-0.5236</lower> <!-- Minimum position (in degrees) -->
-          <upper>0.5236</upper>  <!-- Maximum position (in degrees) -->
+          <lower>-0.5236</lower> <!-- Minimum position (in radians) -->
+          <upper>0.5236</upper>  <!-- Maximum position (in radians) -->
           <effort>10.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
           <velocity>0.5</velocity> <!-- Maximum velocity (optional, in meters/second) -->
         </limit>
