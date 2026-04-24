@@ -46,3 +46,8 @@
 old_models
 
 __pycache__/
+
+# Folders
+/install/
+/log/
+/build/

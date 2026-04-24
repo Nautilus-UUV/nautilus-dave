@@ -103,6 +103,8 @@ def generate_launch_description():
             "world",
             "--child_frame_id",
             "world_ned",
+            # North East Down frame:
+            # North to true North, East along longitude line, Down axis: towards centre of earth
         ],
         output="both",
         condition=IfCondition(use_ned_frame),

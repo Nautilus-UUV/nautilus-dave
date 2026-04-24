@@ -11,6 +11,9 @@ nautilus_bcu_bridge:
     max_capacity_m3: 0.0025
     min_capacity_m3: 0.0010
 
+nautilus_acu_bridge: 
+  ros__parameters: {}
+  
 # These nodes will now automatically inherit 'model_name' from the /** block
 nautilus_external_sensor_bridge:
   ros__parameters: {}
