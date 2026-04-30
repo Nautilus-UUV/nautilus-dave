@@ -724,14 +724,14 @@
     </joint>
 
     <plugin
-      filename="gz-sim-joint-controller-system"
-      name="gz::sim::systems::JointController">
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
       <joint_name>acu_tilt_joint</joint_name>
     </plugin>
 
     <plugin
-      filename="gz-sim-joint-controller-system"
-      name="gz::sim::systems::JointController">
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
       <joint_name>acu_roll_joint</joint_name>
     </plugin>
 

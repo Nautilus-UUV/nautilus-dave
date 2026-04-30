@@ -6,12 +6,9 @@
     model_name: "glider_nautilus"
 
 nautilus_bcu_bridge:
-  ros__parameters:
-    m3_per_rev: 0.32e-6
-    max_capacity_m3: 0.0025
-    min_capacity_m3: 0.0010
+  ros__parameters: {}
 
-nautilus_acu_bridge: 
+nautilus_acu_bridge:
   ros__parameters: {}
   
 # These nodes will now automatically inherit 'model_name' from the /** block

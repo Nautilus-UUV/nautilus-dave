@@ -42,6 +42,8 @@ def generate_launch_description():
                 ),
                 launch_arguments={
                     "z": "-5",
+                    "roll": "3.141592653589793",
+                    "yaw": "1.5707963267948966",
                     "namespace": "glider_nautilus",
                     "world_name": "dave_ocean_waves",
                     "paused": "false",
