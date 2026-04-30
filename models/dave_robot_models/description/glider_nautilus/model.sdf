@@ -657,9 +657,11 @@
       <axis>
         <xyz>1 0 0</xyz>
         <limit>
-          <!-- Limits in the joints own coordinate system -->
-          <lower>0</lower> <!-- Minimum position (in meters) -->
-          <upper>-0.1195</upper>  <!-- Maximum position (in meters ) -->
+          <!-- Limits in the joints own coordinate system. Range is
+               [-0.1195, 0] m: lower < upper as Gazebo expects, with the
+               extended position at -0.1195 and the closed position at 0. -->
+          <lower>-0.1195</lower> <!-- Minimum position (in meters) -->
+          <upper>0</upper>       <!-- Maximum position (in meters) -->
           <effort>10.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
           <velocity>0.5</velocity> <!-- Maximum velocity (optional, in meters/second) -->
         </limit>
@@ -723,16 +725,45 @@
       </axis>
     </joint>
 
+    <!-- ACU pitch (prismatic, 1.83 kg, range [-0.1195, 0] m).
+         <topic> is mandatory here: the plugin's default
+         "/model/<m>/joint/<j>/0/cmd_pos" has a path segment ("0") that
+         starts with a digit, which ROS 2 topic-name validation rejects,
+         so parameter_bridge cannot bridge it. The SDF therefore spells
+         out the actual contract topic; this is not a "rebind for the
+         bridge", it is the SDF *declaring* what name to use because
+         the plugin default is unreachable from ROS.
+         Gains tuned for the prismatic mass: defaults of p=1/i=0.1/d=0.01
+         produce ~0.05 N for a 50 mm error, which is not enough to
+         drive the joint within reasonable settling time. cmd_max/min
+         clamp to the SDF effort limit. -->
     <plugin
       filename="gz-sim-joint-position-controller-system"
       name="gz::sim::systems::JointPositionController">
       <joint_name>acu_tilt_joint</joint_name>
+      <topic>/model/glider_nautilus/joint/acu_tilt_joint/cmd_pos</topic>
+      <p_gain>300</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>30</d_gain>
+      <cmd_max>10</cmd_max>
+      <cmd_min>-10</cmd_min>
     </plugin>
 
+    <!-- ACU roll (revolute, 4.069 kg link with 27 mm CoM offset,
+         range [-0.5236, 0.5236] rad). Same <topic> rationale as
+         acu_tilt_joint above. Effective rotational inertia
+         ~3e-3 kg·m²; gains scaled to the smaller inertia and ±0.5 rad
+         command range. -->
     <plugin
       filename="gz-sim-joint-position-controller-system"
       name="gz::sim::systems::JointPositionController">
       <joint_name>acu_roll_joint</joint_name>
+      <topic>/model/glider_nautilus/joint/acu_roll_joint/cmd_pos</topic>
+      <p_gain>50</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>5</d_gain>
+      <cmd_max>10</cmd_max>
+      <cmd_min>-10</cmd_min>
     </plugin>
 
     <plugin

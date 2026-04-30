@@ -1,8 +1,11 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -33,6 +36,11 @@ def launch_setup(context, *args, **kwargs):
     else:
         gz_args = [world_name]
 
+    # Display control is owned by `headless` alone. `gui` is kept in the
+    # arg list for backwards compatibility but must always be `"true"` —
+    # repurposing `gui=false` for headless silently broke the gz spawn
+    # path in the past, which is why this file no longer gates gz startup
+    # on it.
     if headless.perform(context) == "true":
         gz_args.append(" -s")
     if paused.perform(context) == "false":
@@ -41,7 +49,9 @@ def launch_setup(context, *args, **kwargs):
         gz_args.append(" -v ")
         gz_args.append(verbose.perform(context))
 
-    # Include the first launch file
+    # Always include the gz_sim launch — `-s` (added above) selects
+    # server-only when `gui=false`. Previously this was gated on
+    # `IfCondition(gui)`, which skipped Gazebo entirely in headless mode.
     gz_sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -57,7 +67,6 @@ def launch_setup(context, *args, **kwargs):
         launch_arguments=[
             ("gz_args", gz_args),
         ],
-        condition=IfCondition(gui),
     )
 
     # Include the second launch file with model name

@@ -4,6 +4,11 @@
 /**:
   ros__parameters:
     model_name: "glider_nautilus"
+    # world_name is the SDF <world name="..."> string (see
+    # dave_worlds/worlds/dave_ocean_waves.world line 20: "oceans_waves"),
+    # NOT the world *file* basename (dave_ocean_waves). Used by the ACU
+    # bridge to subscribe to /world/<world_name>/model/<model_name>/joint_state.
+    world_name: "oceans_waves"
 
 nautilus_bcu_bridge:
   ros__parameters: {}
