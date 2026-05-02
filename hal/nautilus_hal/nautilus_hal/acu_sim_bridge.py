@@ -1,17 +1,22 @@
 """
 unit conversions and topics
-Units: ros commands are in mm and radians (Float32), Gazebo is in m and radians (Float64)
+Units: ROS commands are Int16 — pitch in mm, roll in centidegrees
+(scale = ACU_ROLL_CDEG_PER_DEG). Gazebo expects Float64 (m, rad).
 Topics:
     - ros topics acu/roll and acu/pitch
     - Gazebo topics /model/{model_name}/joint/acu_roll_joint/cmd_pos and /model/{model_name}/joint/acu_tilt_joint/cmd_pos
 
 Throttle frequency to 10Hz between ROS and Gazebo."""
 
+import math
+
 import rclpy
+from py_pkg.robot_specs import ACU_ROLL_CDEG_PER_DEG
 from py_pkg.uuv_ros_core import (
     UUVTopics,
     create_subscription_for_topic,
 )
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
@@ -90,11 +95,11 @@ class ACUSimBridge(Node):
         )
 
     def roll_callback(self, msg):
-
+        # ACU_ROLL is Int16 centidegrees on the wire; Gazebo's
+        # JointPositionController expects radians.
+        roll_deg = msg.data / ACU_ROLL_CDEG_PER_DEG
         roll_msg = Float64()
-        roll_msg.data = (
-            msg.data
-        )  # ROS is in radians, Gazebo expects radians, so no conversion needed
+        roll_msg.data = math.radians(roll_deg)
         self.sim_roll_pub.publish(roll_msg)
 
     def pitch_callback(self, msg):
@@ -121,11 +126,17 @@ class ACUSimBridge(Node):
 
 
 def main(args=None):
+    # Catch SIGINT/SIGTERM so the process exits 0 instead of 1 on Ctrl-C —
+    # otherwise launch_testing's exit-code check intermittently fails.
     rclpy.init(args=args)
     node = ACUSimBridge()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.try_shutdown()
 
 
 if __name__ == "__main__":
