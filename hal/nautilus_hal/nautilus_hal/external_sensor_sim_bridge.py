@@ -1,5 +1,6 @@
 import rclpy
 from py_pkg.uuv_ros_core import UUVTopics, create_publisher_for_topic
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import FluidPressure
 from std_msgs.msg import Int32
@@ -53,11 +54,17 @@ class ExternalSensorSimBridge(Node):
 
 
 def main(args=None):
+    # Catch SIGINT/SIGTERM so the process exits 0 instead of 1 on Ctrl-C —
+    # otherwise launch_testing's exit-code check intermittently fails.
     rclpy.init(args=args)
     node = ExternalSensorSimBridge()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.try_shutdown()
 
 
 if __name__ == "__main__":
