@@ -42,7 +42,7 @@ class ACUSimBridge(Node):
         # ACU tilt control
         # ==============
         self.tilt_sub = create_subscription_for_topic(
-            self, UUVTopics.ACU_TILT, self.tilt_callback
+            self, UUVTopics.ACU_PITCH, self.tilt_callback
         )
         self.sim_tilt_pub = self.create_publisher(Float64, SimTopics.ACU_TILT_COMMAND.format(model_name=model_name), 10)
         
@@ -50,7 +50,7 @@ class ACUSimBridge(Node):
         #self.pub_timer = self.create_timer(0.1, self.publish_at_rate)
     
         self.get_logger().info(f"Nautilus ACU Bridge: Listening on {UUVTopics.ACU_ROLL}")
-        self.get_logger().info(f"Nautilus ACU Bridge: Listening on {UUVTopics.ACU_TILT}")
+        self.get_logger().info(f"Nautilus ACU Bridge: Listening on {UUVTopics.ACU_PITCH}")
 
     def roll_callback(self, msg):
 

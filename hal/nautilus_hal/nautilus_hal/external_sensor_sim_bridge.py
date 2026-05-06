@@ -26,7 +26,7 @@ class ExternalSensorSimBridge(Node):
         self.pressure_pub = create_publisher_for_topic(
             self, UUVTopics.EXTERNAL_PRESSURE
         )
-        self.depth_pub = create_publisher_for_topic(self, UUVTopics.TEST_EXTERNAL_DEPTH)
+        #self.depth_pub = create_publisher_for_topic(self, UUVTopics.TEST_EXTERNAL_DEPTH)
         self.sim_pressure_sub = self.create_subscription(
             FluidPressure,
             SimTopics.SEA_PRESSURE.format(model_name=model_name),
@@ -60,7 +60,7 @@ class ExternalSensorSimBridge(Node):
         self.pressure_pub.publish(pressure_msg)
 
         depth_msg = Int32(data=self.latest_depth)
-        self.depth_pub.publish(depth_msg)
+        # self.depth_pub.publish(depth_msg)
 
 
 def main(args=None):
