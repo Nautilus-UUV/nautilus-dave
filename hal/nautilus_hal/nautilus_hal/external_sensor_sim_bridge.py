@@ -1,22 +1,16 @@
-import rclpy
 from py_pkg.uuv_ros_core import UUVTopics, create_publisher_for_topic
-from rclpy.node import Node
 from sensor_msgs.msg import FluidPressure
 from std_msgs.msg import Int32
 
-from .constants import SimTopics
+from .bridge_base import SimBridgeNode, run_bridge
+from .constants import SimTopics, sea_pressure_pa
 
 
-class ExternalSensorSimBridge(Node):
+class ExternalSensorSimBridge(SimBridgeNode):
     def __init__(self):
-        super().__init__(
-            "nautilus_external_sensor_bridge",
-            automatically_declare_parameters_from_overrides=True,
-            allow_undeclared_parameters=True,
-        )
+        super().__init__("nautilus_external_sensor_bridge")
 
-        model_name = self.get_parameter("model_name").value
-
+    def setup_bridges(self):
         self.latest_pressure = 0
         # 10 Hz frequency for publishing external sensors
         self.pub_timer = self.create_timer(0.1, self.publish_at_rate)
@@ -26,25 +20,18 @@ class ExternalSensorSimBridge(Node):
         )
         self.sim_pressure_sub = self.create_subscription(
             FluidPressure,
-            SimTopics.SEA_PRESSURE.format(model_name=model_name),
+            SimTopics.SEA_PRESSURE.format(model_name=self.model_name),
             self.sim_external_pressure_callback,
             10,
         )
 
         self.get_logger().info(
             f"Nautilus Sensor Bridge: Listening for sea pressure on "
-            f"{SimTopics.SEA_PRESSURE.format(model_name=model_name)}"
+            f"{SimTopics.SEA_PRESSURE.format(model_name=self.model_name)}"
         )
 
     def sim_external_pressure_callback(self, msg):
-        """Cache the latest sea pressure (Pa) for periodic republishing.
-
-        The dave sea_pressure_sensor plugin fills FluidPressure.fluid_pressure
-        in kPa (its internal `standardPressure` is 101.325 and gradient
-        `kPaPerM` is 9.80638). FluidPressure semantics require Pa, so scale
-        here — downstream consumers can trust /external/pressure as true Pa.
-        """
-        self.latest_pressure = int(msg.fluid_pressure * 1000.0)
+        self.latest_pressure = sea_pressure_pa(msg.fluid_pressure)
 
     def publish_at_rate(self):
         """Publish external sensors."""
@@ -53,11 +40,7 @@ class ExternalSensorSimBridge(Node):
 
 
 def main(args=None):
-    rclpy.init(args=args)
-    node = ExternalSensorSimBridge()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    run_bridge(ExternalSensorSimBridge, args)
 
 
 if __name__ == "__main__":
