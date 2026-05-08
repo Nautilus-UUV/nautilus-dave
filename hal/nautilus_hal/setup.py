@@ -34,6 +34,7 @@ setup(
             "external_sensor_sim_bridge = nautilus_hal.external_sensor_sim_bridge:main",
             "imu_sim_bridge = nautilus_hal.imu_sim_bridge:main",
             "acu_sim_bridge = nautilus_hal.acu_sim_bridge:main",
+            "gt_pose_bridge = nautilus_hal.gt_pose_bridge:main",
         ],
     },
 )

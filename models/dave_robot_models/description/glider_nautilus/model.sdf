@@ -677,8 +677,27 @@
                extended position at -0.1195 and the closed position at 0. -->
           <lower>-0.1195</lower> <!-- Minimum position (in meters) -->
           <upper>0</upper>       <!-- Maximum position (in meters) -->
-          <effort>10.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
-          <velocity>0.5</velocity> <!-- Maximum velocity (optional, in meters/second) -->
+          <!-- Sim-only effort budget. The real mass-shifter is inside
+               the hull and never sees wave loads, so on hardware ~10 N
+               is enough; in sim, wave-driven body inertia transfers
+               into the joint axis and 10 N let the joint wedge against
+               this stop. Raised to 100 N so the JointPositionController
+               can hold the commanded position regardless of disturbance.
+               (See robot_specs.ACU_PITCH_MAX_EFFORT_N = 10.0 for the
+               hardware contract.) -->
+          <effort>100.0</effort> <!-- N -->
+          <!-- 5 cm/s is the empirical sweet spot. The actuator's spec
+               rate is 1.1 cm/s (`ACU_PITCH_MAX_VELOCITY_M_S`), but
+               below ~3 cm/s the gz-sim joint-position-controller has
+               a step-response bug that teleports the joint to the
+               opposite SDF stop on cmd target changes. 5 cm/s is
+               above that threshold yet still ~5x tighter than the
+               raw mechanical max (which would let the joint slam to
+               targets in milliseconds). The bridge feeds Gazebo
+               step targets; this cap shapes the joint trajectory
+               into something within an order of magnitude of the
+               real actuator's pace. -->
+          <velocity>0.05</velocity> <!-- m/s -->
         </limit>
       </axis>
     </joint>
@@ -734,8 +753,13 @@
         <limit>
           <lower>-0.5236</lower> <!-- Minimum position (in radians) -->
           <upper>0.5236</upper>  <!-- Maximum position (in radians) -->
-          <effort>10.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
-          <velocity>0.5</velocity> <!-- Maximum velocity (optional, in meters/second) -->
+          <!-- Sim-only effort budget; same rationale as acu_tilt_joint
+               above. Hardware contract is robot_specs.ACU_ROLL_MAX_EFFORT_NM
+               = 10.0 Nm. -->
+          <effort>100.0</effort> <!-- Nm -->
+          <!-- Mechanical max kept high; same rationale as
+               acu_tilt_joint (rate cap is upstream in the bridge). -->
+          <velocity>0.5</velocity> <!-- rad/s -->
         </limit>
       </axis>
     </joint>
@@ -750,8 +774,11 @@
          the plugin default is unreachable from ROS.
          Gains tuned for the prismatic mass: defaults of p=1/i=0.1/d=0.01
          produce ~0.05 N for a 50 mm error, which is not enough to
-         drive the joint within reasonable settling time. cmd_max/min
-         clamp to the SDF effort limit. -->
+         drive the joint within reasonable settling time. PD-only —
+         the bridge feeds rate-capped ramps so step inputs never reach
+         this controller, and steady-state offset against gravity-like
+         drift is small enough to fit within the cm-accuracy
+         tolerance. cmd_max/min clamp to the SDF effort limit. -->
     <plugin
       filename="gz-sim-joint-position-controller-system"
       name="gz::sim::systems::JointPositionController">
@@ -760,8 +787,8 @@
       <p_gain>300</p_gain>
       <i_gain>0</i_gain>
       <d_gain>30</d_gain>
-      <cmd_max>10</cmd_max>
-      <cmd_min>-10</cmd_min>
+      <cmd_max>100</cmd_max>
+      <cmd_min>-100</cmd_min>
     </plugin>
 
     <!-- ACU roll (revolute, 4.069 kg link with 27 mm CoM offset,
@@ -777,8 +804,8 @@
       <p_gain>50</p_gain>
       <i_gain>0</i_gain>
       <d_gain>5</d_gain>
-      <cmd_max>10</cmd_max>
-      <cmd_min>-10</cmd_min>
+      <cmd_max>100</cmd_max>
+      <cmd_min>-100</cmd_min>
     </plugin>
 
     <plugin

@@ -9,37 +9,65 @@ Topics:
 Throttle frequency to 10Hz between ROS and Gazebo."""
 
 import math
+import time
 
-import rclpy
-from py_pkg.robot_specs import ACU_ROLL_CDEG_PER_DEG
+from py_pkg.robot_specs import (
+    ACU_PITCH_MAX_VELOCITY_M_S,
+    ACU_ROLL_CDEG_PER_DEG,
+    ACU_ROLL_MAX_VELOCITY_RAD_S,
+)
 from py_pkg.uuv_ros_core import (
     UUVTopics,
     create_subscription_for_topic,
 )
-from rclpy.executors import ExternalShutdownException
-from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 
+from .bridge_base import SimBridgeNode, run_bridge
 from .constants import Conversions, SimDebugTopics, SimTopics
 
 
-class ACUSimBridge(Node):
+class ACUSimBridge(SimBridgeNode):
     def __init__(self):
-        super().__init__(
-            "nautilus_acu_bridge",
-            automatically_declare_parameters_from_overrides=True,
-            allow_undeclared_parameters=True,
-        )
+        super().__init__("nautilus_acu_bridge")
+        # Rate-cap state for the cmd_pos forwarded to Gazebo. Caps
+        # the per-callback delta to ACU_*_MAX_VELOCITY × dt so the
+        # joint controller sees a feasible ramp rather than a step.
+        # Mirrors what the EPOS driver does on hardware.
+        self._pitch_last_m: float | None = None
+        self._pitch_last_t: float | None = None
+        self._roll_last_rad: float | None = None
+        self._roll_last_t: float | None = None
 
-        # Directly access parameters from the YAML overrides.
-        model_name = self.get_parameter("model_name").value
-        world_name = self.get_parameter("world_name").value
+    def _rate_cap(self, desired, last_value, last_time, max_rate, now_s):
+        if last_value is None or last_time is None:
+            return desired, desired, now_s
+        dt = now_s - last_time
+        if dt <= 0:
+            return last_value, last_value, last_time
+        if dt > 1.0:
+            dt = 1.0
+        max_step = max_rate * dt
+        delta = desired - last_value
+        if delta > max_step:
+            delta = max_step
+        elif delta < -max_step:
+            delta = -max_step
+        out = last_value + delta
+        return out, out, now_s
+
+    def setup_bridges(self):
+        # world_name is only needed by this bridge (joint_state path).
+        world_name = self.world_name
+        model_name = self.model_name
+
+        # The bridge rate-caps cmd_pos before forwarding to Gazebo
+        # (see __init__ rationale). Speed limits also live in the SDF
+        # `<velocity>` joint limit and the EPOS driver (hardware).
 
         # ====================
         # ACU roll control
         # ====================
-        # self.last_time = self.get_clock().now()
         self.roll_sub = create_subscription_for_topic(
             self, UUVTopics.ACU_ROLL, self.roll_callback
         )
@@ -84,9 +112,6 @@ class ACUSimBridge(Node):
             10,
         )
 
-        # 10 Hz pub timer to throttle data
-        # self.pub_timer = self.create_timer(0.1, self.publish_at_rate)
-
         self.get_logger().info(
             f"Nautilus ACU Bridge: Listening on {UUVTopics.ACU_ROLL}"
         )
@@ -98,16 +123,32 @@ class ACUSimBridge(Node):
         # ACU_ROLL is Int16 centidegrees on the wire; Gazebo's
         # JointPositionController expects radians.
         roll_deg = msg.data / ACU_ROLL_CDEG_PER_DEG
+        roll_rad = math.radians(roll_deg)
+        now_s = time.monotonic()
+        roll_rad, self._roll_last_rad, self._roll_last_t = self._rate_cap(
+            roll_rad,
+            self._roll_last_rad,
+            self._roll_last_t,
+            ACU_ROLL_MAX_VELOCITY_RAD_S,
+            now_s,
+        )
         roll_msg = Float64()
-        roll_msg.data = math.radians(roll_deg)
+        roll_msg.data = roll_rad
         self.sim_roll_pub.publish(roll_msg)
 
     def pitch_callback(self, msg):
-
+        # ROS is in mm, Gazebo expects m.
+        pitch_m = msg.data * Conversions.MM_TO_M
+        now_s = time.monotonic()
+        pitch_m, self._pitch_last_m, self._pitch_last_t = self._rate_cap(
+            pitch_m,
+            self._pitch_last_m,
+            self._pitch_last_t,
+            ACU_PITCH_MAX_VELOCITY_M_S,
+            now_s,
+        )
         sim_msg = Float64()
-        sim_msg.data = (
-            msg.data * Conversions.MM_TO_M
-        )  # ROS is in mm, Gazebo expects m, so convert
+        sim_msg.data = pitch_m
         self.sim_tilt_pub.publish(sim_msg)
 
     def sim_joint_state_callback(self, msg: JointState) -> None:
@@ -120,23 +161,9 @@ class ACUSimBridge(Node):
             elif name == "acu_roll_joint":
                 self.sim_roll_pos_pub.publish(Float64(data=float(position)))
 
-    """def publish_at_rate(self):
-        bcu_pressure_msg = Int32(data=self.latest_volume)
-        self.bcu_pressure_pub.publish(bcu_pressure_msg)"""
-
 
 def main(args=None):
-    # Catch SIGINT/SIGTERM so the process exits 0 instead of 1 on Ctrl-C —
-    # otherwise launch_testing's exit-code check intermittently fails.
-    rclpy.init(args=args)
-    node = ACUSimBridge()
-    try:
-        rclpy.spin(node)
-    except (KeyboardInterrupt, ExternalShutdownException):
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.try_shutdown()
+    run_bridge(ACUSimBridge, args)
 
 
 if __name__ == "__main__":

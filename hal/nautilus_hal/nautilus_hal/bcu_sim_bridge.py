@@ -1,4 +1,3 @@
-import rclpy
 from py_pkg.robot_specs import (
     BLADDER_MAX_VOLUME_M3,
     BLADDER_MIN_VOLUME_M3,
@@ -9,25 +8,18 @@ from py_pkg.uuv_ros_core import (
     create_publisher_for_topic,
     create_subscription_for_topic,
 )
-from rclpy.executors import ExternalShutdownException
-from rclpy.node import Node
 from sensor_msgs.msg import FluidPressure
 from std_msgs.msg import Float32, Float64, Int32
 
-from .constants import Conversions, SimTopics
+from .bridge_base import SimBridgeNode, run_bridge
+from .constants import Conversions, SimTopics, sea_pressure_pa
 
 
-class BCUSimBridge(Node):
+class BCUSimBridge(SimBridgeNode):
     def __init__(self):
-        super().__init__(
-            "nautilus_bcu_bridge",
-            automatically_declare_parameters_from_overrides=True,
-            allow_undeclared_parameters=True,
-        )
+        super().__init__("nautilus_bcu_bridge")
 
-        # Directly access parameters from the YAML overrides.
-        model_name = self.get_parameter("model_name").value
-
+    def setup_bridges(self):
         # Seeded from Gazebo's first BUOYANCY_VOLUME_STATE callback (see
         # sim_bcu_volume_callback). Until then we don't push a volume back
         # to Gazebo — pushing 0.0 + delta would clobber the SDF-initialized
@@ -60,19 +52,19 @@ class BCUSimBridge(Node):
         self.bcu_volume_pub = create_publisher_for_topic(self, UUVTopics.BCU_VOLUME)
         self.sim_current_volume_sub = self.create_subscription(
             Float64,
-            SimTopics.BUOYANCY_VOLUME_STATE.format(model_name=model_name),
+            SimTopics.BUOYANCY_VOLUME_STATE.format(model_name=self.model_name),
             self.sim_bcu_volume_callback,
             10,
         )
         self.sim_pressure_sub = self.create_subscription(
             FluidPressure,
-            SimTopics.SEA_PRESSURE.format(model_name=model_name),
+            SimTopics.SEA_PRESSURE.format(model_name=self.model_name),
             self.sim_sea_pressure_callback,
             10,
         )
 
         self.sim_volume_pub = self.create_publisher(
-            Float64, SimTopics.BUOYANCY_COMMAND.format(model_name=model_name), 10
+            Float64, SimTopics.BUOYANCY_COMMAND.format(model_name=self.model_name), 10
         )
 
         
@@ -129,13 +121,7 @@ class BCUSimBridge(Node):
         self.latest_volume_ml = int(msg.data * Conversions.M3_TO_ML)
 
     def sim_sea_pressure_callback(self, msg):
-        # The dave sea_pressure_sensor plugin fills FluidPressure.fluid_pressure
-        # in kPa (its standardPressure is 101.325, gradient kPaPerM is 9.80638);
-        # FluidPressure semantics require Pa, so scale here. Mirrors the
-        # conversion in external_sensor_sim_bridge so /bcu/pressure and
-        # /external/pressure share units (Pa, Int32) and downstream code can
-        # use physics.pressure_to_depth on either.
-        self.latest_pressure_pa = int(msg.fluid_pressure * 1000.0)
+        self.latest_pressure_pa = sea_pressure_pa(msg.fluid_pressure)
 
     def publish_at_rate(self):
         self.bcu_pressure_pub.publish(Int32(data=self.latest_pressure_pa))
@@ -143,17 +129,7 @@ class BCUSimBridge(Node):
 
 
 def main(args=None):
-    # Catch SIGINT/SIGTERM so the process exits 0 instead of 1 on Ctrl-C —
-    # otherwise launch_testing's exit-code check intermittently fails.
-    rclpy.init(args=args)
-    node = BCUSimBridge()
-    try:
-        rclpy.spin(node)
-    except (KeyboardInterrupt, ExternalShutdownException):
-        pass
-    finally:
-        node.destroy_node()
-        rclpy.try_shutdown()
+    run_bridge(BCUSimBridge, args)
 
 
 if __name__ == "__main__":
