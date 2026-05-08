@@ -85,23 +85,18 @@ source install/setup.bash
 
 ### Testing Setup
 
-We need to start 3 components: 
-1. The Hardware Abstraction layer 
+We need to start 2 components plus a controller of your choice:
+1. The Hardware Abstraction layer
 ```bash
 ros2 launch nautilus_hal bridge.launch.py  # launches all the interfaces
 ````
-2. The control logic (for this there is a mocked integration test)
-```bash
-ros2 run py_pkg bcu_oscillator 
-``` 
-3. The DAVE simulation with Nautilus
+2. The DAVE simulation with Nautilus
 ```bash
 ros2 launch dave_demos dave_robot.launch.py z:=-5 roll:=3.141592653589793 yaw:=1.5707963267948966 namespace:=glider_nautilus world_name:=dave_ocean_waves paused:=false
 ```
-<!-- The roll and pitch are necessary because Gazebos world coordinate system uses ENU while 
+<!-- The roll and pitch are necessary because Gazebos world coordinate system uses ENU while
      the convention for the glider has been determined to be NED -->
-
-Now, if everything is working correctly, you should see the Nautilus Glider reach for the surface and dive back down in an oscillary motion.
+3. A controller — e.g. `ros2 run py_pkg ekf_node` plus `ekf_prefilter`, or any of the `bcu`/`acu`/`pid` nodes from `nautilus-ros`.
 
 
 ## Branch Structure

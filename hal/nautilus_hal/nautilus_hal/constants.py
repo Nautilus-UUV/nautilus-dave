@@ -13,6 +13,16 @@ class Conversions:
     ML_TO_M3 = 1e-6
     CM_TO_M = 0.01
     MM_TO_M = 0.001
+    # The dave sea_pressure_sensor plugin fills FluidPressure.fluid_pressure
+    # in kPa (standardPressure=101.325, kPaPerM=9.80638) — FluidPressure
+    # semantics require Pa, so every consumer rescales here. Keep in one
+    # place so /external/pressure and /bcu/pressure can never drift apart.
+    KPA_TO_PA = 1000.0
+
+
+def sea_pressure_pa(fluid_pressure_kpa: float) -> int:
+    """dave FluidPressure (kPa, despite the field name) -> integer Pa."""
+    return int(fluid_pressure_kpa * Conversions.KPA_TO_PA)
 
 
 class SimTopics:
@@ -31,6 +41,10 @@ class SimTopics:
     ACU_TILT_COMMAND = "/model/{model_name}/joint/acu_tilt_joint/cmd_pos"
     SEA_PRESSURE = "/model/{model_name}/sea_pressure"
     IMU = "/model/{model_name}/imu"
+    # Ground-truth model pose, bridged out of Gazebo by
+    # dave_robot_models/config/glider_nautilus/robot_config.py:16.
+    # Sim-only — production controllers must not depend on this.
+    ODOMETRY = "/model/{model_name}/odometry"
     # Gazebo-side joint state, bridged to ROS by parameter_bridge in
     # dave_robot_models/config/glider_nautilus/robot_config.py. world_name and
     # model_name are substituted at runtime.

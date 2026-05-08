@@ -3,7 +3,6 @@ import os
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -22,14 +21,7 @@ def generate_launch_description():
                     ]
                 )
             ),
-            # 2. Start-Up: BCU Oscillator
-            Node(
-                package="py_pkg",
-                executable="bcu_oscillator",
-                name="bcu_oscillator",
-                output="screen",
-            ),
-            # 3. Start-Up: Dave Robot Simulation
+            # 2. Start-Up: Dave Robot Simulation
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     [
