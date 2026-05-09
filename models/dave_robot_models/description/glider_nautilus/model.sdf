@@ -624,12 +624,12 @@
         <!-- <pose relative_to="acu_tilt_joint">0 0 0 0 0 0</pose> -->
         <mass>1.83</mass>
         <inertia>
-          <ixx>1e-05</ixx>
+          <ixx>0.05</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>1e-05</iyy>
+          <iyy>0.05</iyy>
           <iyz>0</iyz>
-          <izz>1e-05</izz>
+          <izz>0.05</izz>
         </inertia>
       </inertial>
 
@@ -656,14 +656,18 @@
       <child>acu_tilt_link</child>
       <axis>
         <xyz>1 0 0</xyz>
+        <!-- <dynamics>
+          <damping>20</damping>
+          <friction>5</friction>
+        </dynamics> -->
         <limit>
           <!-- Limits in the joints own coordinate system. Range is
                [-0.1195, 0] m: lower < upper as Gazebo expects, with the
                extended position at -0.1195 and the closed position at 0. -->
           <lower>-0.1195</lower> <!-- Minimum position (in meters) -->
           <upper>0</upper>       <!-- Maximum position (in meters) -->
-          <effort>10.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
-          <velocity>0.5</velocity> <!-- Maximum velocity (optional, in meters/second) -->
+          <effort>10000.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
+          <velocity>0.011</velocity> <!-- Maximum velocity (optional, in meters/second) -->
         </limit>
       </axis>
     </joint>
@@ -680,12 +684,12 @@
         <!-- Mass of roll weight from spreadsheet as of 22.04. -->
         <mass>4.069</mass>
         <inertia>
-          <ixx>1e-05</ixx>
+          <ixx>0.05</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>1e-05</iyy>
+          <iyy>0.05</iyy>
           <iyz>0</iyz>
-          <izz>1e-05</izz>
+          <izz>0.05</izz>
         </inertia>
       </inertial>
       <battery name='battery_acu_roll'>
@@ -719,8 +723,8 @@
         <limit>
           <lower>-0.5236</lower> <!-- Minimum position (in radians) -->
           <upper>0.5236</upper>  <!-- Maximum position (in radians) -->
-          <effort>10.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
-          <velocity>0.5</velocity> <!-- Maximum velocity (optional, in meters/second) -->
+          <effort>10000.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
+          <velocity>0.022</velocity> <!-- Maximum velocity (optional, in meters/second) -->
         </limit>
       </axis>
     </joint>
@@ -742,18 +746,17 @@
       name="gz::sim::systems::JointPositionController">
       <joint_name>acu_tilt_joint</joint_name>
       <topic>/model/glider_nautilus/joint/acu_tilt_joint/cmd_pos</topic>
-      <p_gain>300</p_gain>
+      <p_gain>30000</p_gain>
       <i_gain>0</i_gain>
-      <d_gain>30</d_gain>
-      <cmd_max>10</cmd_max>
-      <cmd_min>-10</cmd_min>
+      <d_gain>3000</d_gain>
+      <!-- cmd_max/min must match (or stay below) the SDF joint <effort>
+           cap above. Wave forcing at z=-3 spawn pushes ~1000 N on the
+           mass-shifter axis, so we need substantially more headroom to
+           hold a steady-state position against it. -->
+      <cmd_max>10000</cmd_max>
+      <cmd_min>-10000</cmd_min>
     </plugin>
 
-    <!-- ACU roll (revolute, 4.069 kg link with 27 mm CoM offset,
-         range [-0.5236, 0.5236] rad). Same <topic> rationale as
-         acu_tilt_joint above. Effective rotational inertia
-         ~3e-3 kg·m²; gains scaled to the smaller inertia and ±0.5 rad
-         command range. -->
     <plugin
       filename="gz-sim-joint-position-controller-system"
       name="gz::sim::systems::JointPositionController">
@@ -762,8 +765,8 @@
       <p_gain>50</p_gain>
       <i_gain>0</i_gain>
       <d_gain>5</d_gain>
-      <cmd_max>10</cmd_max>
-      <cmd_min>-10</cmd_min>
+      <cmd_max>10000</cmd_max>
+      <cmd_min>-10000</cmd_min>
     </plugin>
 
     <plugin
