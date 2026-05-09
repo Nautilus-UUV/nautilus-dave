@@ -31,10 +31,6 @@ class ACUSimBridge(SimBridgeNode):
         world_name = self.world_name
         model_name = self.model_name
 
-        # Slew rate enforcement lives in the SDF `<velocity>` joint
-        # limit (sim) and the EPOS driver (hardware). The bridge is a
-        # pure unit-conversion pass-through.
-
         # ====================
         # ACU roll control
         # ====================
