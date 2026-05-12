@@ -103,12 +103,18 @@ def generate_launch_description():
             "world",
             "--child_frame_id",
             "world_ned",
+            # North East Down frame:
+            # North to true North, East along longitude line, Down axis: towards centre of earth
         ],
         output="both",
         condition=IfCondition(use_ned_frame),
         parameters=[{"use_sim_time": use_sim_time}],
     )
 
+    # Spawn the robot into Gazebo whether or not the GUI is up — `ros_gz_sim
+    # create` talks to the gz server (which exists in headless mode too).
+    # Previously gated on `IfCondition(gui)`, which silently skipped the spawn
+    # in headless mode and left the world empty (no IMU, no buoyancy plugin).
     gz_spawner = Node(
         package="ros_gz_sim",
         executable="create",
@@ -131,7 +137,6 @@ def generate_launch_description():
             yaw,
         ],
         output="both",
-        condition=IfCondition(gui),
         parameters=[{"use_sim_time": use_sim_time}],
     )
 

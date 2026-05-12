@@ -4,44 +4,53 @@
 
     <static>false</static>
 
+    <!--           -->
     <!-- BASE LINK -->
+    <!--           -->
 
     <link name="base_link">
       <inertial>
-        <!-- Inertial without ACU -->
-        <!-- <pose>-0.001 0.501 -0.004 0 0 0</pose>
-        <mass>56.007</mass>
-        <inertia>
-          <ixx>9.027</ixx>
-          <ixy>-0.004407</ixy>
-          <ixz>0.004285</ixz>
-          <iyy>0.796176</iyy>
-          <iyz>-0.148290</iyz>
-          <izz>9.19</izz>
-        </inertia> -->
-        
-        <!-- Inertial with ACU -->
-        <!-- <pose>0 0.54447 -0.00768 0 0 0</pose>
-        <mass>62.845</mass>
-        <inertia>
-          <ixx>10.24</ixx>
-          <ixy>-0.004930</ixy>
-          <ixz>0.003058</ixz>
-          <iyy>0.902550</iyy>
-          <iyz>0.027482</iyz>
-          <izz>10.32</izz>
-        </inertia> -->
 
-        <pose>0 0.528 -0.00768 0 0 0</pose>
-        <mass>58.245</mass>
+        <!-- Pose of the Centre of Mass in the NED base_link frame
+             This comes from the Technical_Details spreadsheet (22.04.)
+             without the contribution from ACU and oil mass -->
+
+        <pose>0.066 0 0.013 0 0 0</pose>
+
+        <!-- Moment of inertia matrix
+             Taken around the Centre of Mass in the NED coordinate system.
+             The values come from the HS25_Master_Assembly_Nautilus (as of 04.04.26)
+             and contain the contributions of all parts except:
+             * The moving parts of the Pitch ACU
+             * The moving parts of the Roll ACU
+             * The Blade of the rudder 
+             Since the Onshape assmebly did likely not include the oil mass, it is not
+             part of the moments of inertia matrix -->
+
         <inertia>
-          <ixx>10.24</ixx>
-          <ixy>-0.004930</ixy>
-          <ixz>0.003058</ixz>
-          <iyy>0.902550</iyy>
-          <iyz>0.027482</iyz>
-          <izz>10.32</izz>
+          <ixx>0.569665165</ixx>
+          <ixy>0.014586839</ixy>
+          <ixz>-0.135434148</ixz>
+          <iyy>7.792</iyy>
+          <iyz>0.003389589</iyz>
+          <izz>7.738</izz>
         </inertia>
+
+        <fluid_added_mass>
+          <xx>5.30023995</xx>
+          <yy>98.529516</yy>
+          <zz>110.543023</zz>
+          <pp>1.46943124</pp>
+          <qq>20.2676439</qq>
+          <rr>16.1139805</rr>
+        </fluid_added_mass>
+
+        <!-- Mass from the Technical_Details spreadsheet
+             This does not include:
+             * Movable ACU masses
+             * Oil mass -->
+
+        <mass>44.637</mass>
         
       </inertial>
 
@@ -49,9 +58,11 @@
         <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <!-- Model without wings and rudder. Frame corresponds to frame in 
-            OnShape master assembly (version without scientific unit) -->
-            <uri>model://meshes/glider_nautilus/nautilus_glider_nw_v03.dae</uri>
+            <!-- Model without wings and rudder. Frame corresponds to a NED 
+                 coordinate system located at the geometric centre point of 
+                 the hull shell cylinder. The mesh file below has
+                 a coordinate system aligned with this convention -->
+            <uri>model://meshes/glider_nautilus/nautilus_glider_nw_v04.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -61,13 +72,34 @@
         </material>
       </visual>
 
-      <!-- Box visualising where the bouyant volume of the
-      hull is. Not functional -->
-      <!-- <visual name="buoyancy_box">
-        <pose>0 0.5 0 0 0 0</pose>
+      <collision name="base_link_collision">
+        <!-- This determines the buoyancy of the hull
+             Specifically, this is the volume displaced by the hull shell and
+             the two bulkheads when assembled into one geometric object. Looking
+             at the geometry in the HS25_Master_Assembly_Nautilus, this should be
+             about 0.054482 m^3.
+             The NED coordinate system is at the geometric centre of the hull
+             so the buoyancy forces from the hull coincide with the origin.
+             The buoyancy plugin only supports collision geometries made of boxes
+             and spheres. The volume is modelled as a box with a volume of about
+             0.0544 m^3 centred at the origin. -->
+        <pose>0.0 0 0 0 0 0</pose>
         <geometry>
           <box>
-            <size>0.230217 1.190528 0.230217</size> 
+            <!-- x y and z dimensions of the box (refers to base_link coordinates) -->
+            <size>1.007723 0.232517 0.232517</size>  
+          </box>
+        </geometry>
+      </collision>
+
+      <!-- Box visualising where the bouyant volume of the
+           hull is. Not functional, simply an optional sanity check. 
+           Uncomment to show. -->
+      <!-- <visual name="buoyancy_box">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>1.007723 0.232517 0.232517</size> 
           </box>
         </geometry>
         <material>
@@ -77,18 +109,6 @@
         </material>
       </visual> -->
 
-      <collision name="base_link_collision">
-        <!-- This determines the buoyancy.
-             Hull starts at base frame, centre 0.5m from base frame -->
-        <pose>0 0.5 0 0 0 0</pose>
-        <geometry>
-          <box>
-            <!-- Volume 0.053m^3 + 0.010098m^3 ie. volume of the hull
-            plus the volume needed to compensate for neutrall buoyant parts-->
-            <size>0.230217 1.190528 0.230217</size>  
-          </box>
-        </geometry>
-      </collision>
     </link>
 
     <plugin
@@ -115,8 +135,8 @@
       <xU>-108</xU>
       <yV>-8</yV>
       <zW>-162</zW>
-      <kP>-32</kP>
-      <mQ>-13</mQ>
+      <kP>-13</kP>
+      <mQ>-32</mQ>
       <nR>-20</nR>
       <!-- cross terms -->
       <!-- <yR>150</yR>
@@ -132,17 +152,106 @@
       <mQabsQ>0</mQabsQ>
       <nRabsR>0</nRabsR>
     </plugin>
+    
+    <!--              -->
+    <!-- TRIMMING BOW -->
+    <!--              -->
 
+    <!-- A rigidly attached link providing the additional buoyancy
+         or mass needed to make the glider float correctly -->
+
+    <joint name="trimming_bow_joint" type="fixed">
+      <pose>0.65 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>trimming_bow</child>0 0 0 
+    </joint>
+
+    <link name="trimming_bow">
+
+      <pose>0.65 0 0 0 0 0</pose>
+      
+      <collision name="bow_trimming_foam_collision">
+        <pose>0 0 0 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.065 0.18 0.18</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name="bow_trimming_foam_visual">
+        <geometry>
+          <box>
+            <size>0.065 0.15 0.15</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 0 1 0.8</ambient>
+          <diffuse>0 0 1 0.8</diffuse>
+          <specular>0 0 1 0.8</specular>
+        </material>
+      </visual>
+
+    </link>
+
+    <!--                -->
+    <!-- TRIMMING STERN -->
+    <!--                -->
+
+    <!-- A rigidly attached link providing the additional buoyancy
+         or mass needed to make the glider float correctly. Uncomment
+         and add mass / a collision geometry to activate. -->
+
+    <joint name="trimming_stern_joint" type="fixed">
+      <pose>-0.7 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>trimming_stern</child> 
+    </joint>
+
+    <link name="trimming_stern">
+      
+      <collision name="stern_trimming_foam_collision">
+        <geometry>
+          <box>
+            <size>0.015 0.18 0.18</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <pose>-0.7 0 0 0 0 0</pose>
+
+      <inertial>
+        <mass>0.01</mass>
+      </inertial>
+
+      <visual name="stern_trimming_foam_visual">
+        <geometry>
+          <box>
+            <size>0.015 0.18 0.18</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 0 1 0.8</ambient>
+          <diffuse>0 0 1 0.8</diffuse>
+          <specular>0 0 1 0.8</specular>
+        </material>
+      </visual>
+
+    </link>
+
+    <!--          -->
     <!-- LEFT FIN -->
+    <!--          -->
 
     <link name="LeftFin_link">
       <!-- Frame for aerodynamic forces of left wing. 
            For now simply rest at base link -->
       
       <visual name="LeftFin_visual">
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://meshes/glider_nautilus/nautilus_glider_wing_l_v03.dae</uri>
+            <uri>model://meshes/glider_nautilus/nautilus_glider_wing_l_v04.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -156,7 +265,7 @@
            centre of pressure passed to the lift drag plugin. Insert 
            the same position in the pose tag. -->
       <visual name="centre_of_pressure_marker">
-        <pose>0.408 1.205 0 0 0 0</pose>
+        <pose>-0.7 -0.408 0 0 0 0</pose>
         <geometry>
           <sphere>
             <radius>0.01</radius>
@@ -188,22 +297,25 @@
       <alpha_stall>0.17</alpha_stall>
       <a0>0</a0>
       <area>0.0725</area>
-      <upward>0 0 1</upward>
-      <forward>0 -1 0</forward>
+      <upward>0 0 -1</upward>
+      <forward>1 0 0</forward>
       <link_name>LeftFin_link</link_name>
       <!-- cp determines the centre of pressure in the link frame,
            i.e. wher the aerodynamic forces are applied -->
-      <cp>0.408 1.205 0</cp>
+      <cp>-0.7 -0.408 0</cp>
     </plugin>
 
+    <!--           -->
     <!-- RIGHT FIN -->
+    <!--           -->
 
     <link name="RightFin_link">
       
       <visual name="RightFin_visual">
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <mesh>
-            <uri>model://meshes/glider_nautilus/nautilus_glider_wing_r_v03.dae</uri>
+            <uri>model://meshes/glider_nautilus/nautilus_glider_wing_r_v04.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -217,7 +329,7 @@
            centre of pressure passed to the lift drag plugin. Insert 
            the same position in the pose tag. -->
       <visual name="centre_of_pressure_marker">
-        <pose>-0.408 1.205 0 0 0 0</pose>
+        <pose>-0.7 0.408  0 0 0 0</pose>  <!-- -1.205 0.408  0 0 0 0 -->
         <geometry>
           <sphere>
             <radius>0.01</radius>
@@ -249,24 +361,39 @@
       <alpha_stall>0.17</alpha_stall>
       <a0>0</a0>
       <area>0.0725</area>
-      <upward>0 0 1</upward>
-      <forward>0 -1 0</forward>
+      <upward>0 0 -1</upward>
+      <forward>1 0 0</forward>
       <link_name>RightFin_link</link_name>
       <!-- cp determines the centre of pressure in the link frame,
            i.e. wher the aerodynamic forces are applied -->
-      <cp>-0.408 1.205 0</cp>
+      <cp>-0.7 0.408  0</cp>
     </plugin>
-
+    
+    <!--            -->
     <!-- TOP RUDDER -->
+    <!--            -->
+
+    <!-- Top rudder should be movable. First define this joint that
+         the rudder's axis of rotation passes through -->
+
+    <joint name="TopRudder_joint" type="fixed">
+      <pose relative_to="base_link">-0.899156 0 -0.119 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>TopRudder_link</child>
+    </joint>
 
     <link name="TopRudder_link">
 
+      <!-- Link (ie rudder body) has its coordinate system right
+           on the rudder joint -->
+
       <pose relative_to="TopRudder_joint">0 0 0 0 0 0</pose>
       
+      <!-- Integrates the mesh files of the rudder -->
       <visual name="Rudder_visual">
         <geometry>
           <mesh>
-            <uri>model://meshes/glider_nautilus/nautilus_glider_rudder_v04.dae</uri>
+            <uri>model://meshes/glider_nautilus/nautilus_glider_rudder_v05.dae</uri>
           </mesh>
         </geometry>
         <material>
@@ -280,7 +407,9 @@
            centre of pressure passed to the lift drag plugin. Insert 
            the same position in the pose tag. -->
       <visual name="centre_of_pressure_marker">
-        <pose relative_to="TopRudder_link">0 0.04 0.1 0 0 0</pose>
+        <!-- Pose of the 'centre of pressure' in the local coordinates
+             of the TopRudder_link, also a NED coordinate system -->
+        <pose relative_to="TopRudder_link">-0.04 0 -0.1 0 0 0</pose>
         <geometry>
           <sphere>
             <radius>0.01</radius>
@@ -294,12 +423,6 @@
       </visual>
 
     </link>
-
-    <joint name="TopRudder_joint" type="fixed">
-      <pose relative_to="base_link">0 1.404 0.119 0 0 0</pose>
-      <parent>base_link</parent>
-      <child>TopRudder_link</child>
-    </joint>
 
     <!-- Started to implement a movable rudder -->
 
@@ -350,18 +473,20 @@
       <upward>0 1 0</upward>
       <forward>1 0 0</forward>
       <link_name>TopRudder_link</link_name>
-      <cp>0 0.04 0.1</cp>
+      <cp>-0.04 0 -0.1</cp>
     </plugin>
 
+    <!--         -->
     <!-- BLADDER -->
+    <!--         -->
 
     <link name="bladder_link">
       <!-- Pose of bladder link in base link frame-->
-      <pose>0 -0.105 0 0 0 0</pose>
+      <pose>0.6 0 0 0 0 0</pose>
       <visual name="bladder_link_visual">
         <geometry>
           <sphere>
-            <radius>0.1</radius>
+            <radius>0.05</radius>
           </sphere>
         </geometry>
         <material>
@@ -385,7 +510,7 @@
     <link name="oil_weight_link">
       <!--Oil positioned in the middle between the 
       tank and the bladder. Static. Position in base_link coord-->
-      <pose>0 0.0855 -0.0185 0 0 0</pose>
+      <pose>0.4125 0 0.018 0 0 0</pose>
       <visual name="oil_weight_marker">
         <pose>0 0 0 0 0 0</pose>
         <geometry>
@@ -411,7 +536,7 @@
       <link_name>bladder_link</link_name>
       <max_inflation_rate>0.0001</max_inflation_rate>
       <min_volume>0.0</min_volume>
-      <max_volume>0.0025</max_volume>
+      <max_volume>0.0025</max_volume>engine
       <neutral_volume>0.0</neutral_volume>
       <default_volume>0.00125</default_volume>
       <fluid_density>1025.0</fluid_density>
@@ -419,7 +544,9 @@
       <namespace>glider_nautilus</namespace>
     </plugin>
 
+    <!--     -->
     <!-- IMU -->
+    <!--     -->
 
     <link name="imu_link">
       <inertial>
@@ -452,10 +579,12 @@
       name="gz::sim::systems::Imu">
     </plugin>
 
+    <!--         -->
     <!-- BATTERY -->
+    <!--         -->
 
     <link name='battery_link'>
-      <!-- Inertial properties of battery accounted for in the
+      <!-- Inertial properties of static battery accounted for in the
            inertial properties of the base link  -->
       <!-- <inertial>
         <pose>0 0 0 0 0 0</pose>
@@ -480,6 +609,166 @@
       <child>battery_link</child>
     </joint>
 
+    <!--     -->
+    <!-- ACU -->
+    <!--     -->
+
+    <!-- PITCH ACU -->
+
+    <link name='acu_tilt_link'>
+
+      <!-- Pitch ACU weight starts in the middle -->
+      <pose>-0.32525 0 -0.0438 0 0 0</pose>
+
+      <inertial>
+        <!-- <pose relative_to="acu_tilt_joint">0 0 0 0 0 0</pose> -->
+        <mass>1.83</mass>
+        <inertia>
+          <ixx>0.05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.05</iyy>
+          <iyz>0</iyz>
+          <izz>0.05</izz>
+        </inertia>
+      </inertial>
+
+      <!-- Marker for debugging pitch ACU mass position -->
+      <visual name="CM_pitch_ACU_marker">
+        <!-- <pose relative_to="acu_tilt_joint">0 0 0 0 0 0</pose> -->
+        <geometry>
+          <sphere>
+            <radius>0.01</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <ambient>0.9 0 0 0.9</ambient>
+          <diffuse>0.9 0 0 0.9</diffuse>
+          <specular>0 0 0 0.9</specular>
+        </material>
+      </visual>
+    </link>
+
+    <joint name='acu_tilt_joint' type='prismatic'>
+      <!-- Updated according to spreadsheet on 22.04. -->
+      <pose>-0.385 0 -0.0438 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>acu_tilt_link</child>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <!-- <dynamics>
+          <damping>20</damping>
+          <friction>5</friction>
+        </dynamics> -->
+        <limit>
+          <!-- Limits in the joints own coordinate system. Range is
+               [-0.1195, 0] m: lower < upper as Gazebo expects, with the
+               extended position at -0.1195 and the closed position at 0. -->
+          <lower>-0.1195</lower> <!-- Minimum position (in meters) -->
+          <upper>0</upper>       <!-- Maximum position (in meters) -->
+          <effort>10000.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
+          <velocity>0.011</velocity> <!-- Maximum velocity (optional, in meters/second) -->
+        </limit>
+      </axis>
+    </joint>
+
+    <!-- ROLL ACU -->
+
+    <link name='acu_roll_link'>
+      <pose>-0.428 0 0.034 0 0 0</pose>
+
+      <inertial>
+        <!-- Pose of the centre of mass relative to the pivot.
+             From Onshape 22.04. -->
+        <pose>0 0 0.027 0 0 0</pose>
+        <!-- Mass of roll weight from spreadsheet as of 22.04. -->
+        <mass>4.069</mass>
+        <inertia>
+          <ixx>0.05</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.05</iyy>
+          <iyz>0</iyz>
+          <izz>0.05</izz>
+        </inertia>
+      </inertial>
+      <battery name='battery_acu_roll'>
+        <voltage>4.2</voltage>
+      </battery>
+
+      <!-- Marker for debugging roll ACU mass position -->
+      <visual name="CM_roll_ACU_marker">
+        <pose>0 0 0.027 0 0 0</pose>
+        <geometry>
+          <sphere>
+            <radius>0.01</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <ambient>0.9 0 0 0.9</ambient>
+          <diffuse>0.9 0 0 0.9</diffuse>
+          <specular>0 0 0 0.9</specular>
+        </material>
+      </visual>
+
+    </link>
+
+    <joint name='acu_roll_joint' type='revolute'>
+      <!-- Updated according to spreadsheet on 22.04. -->
+      <pose>-0.428 0 0.034 0 0 0</pose> <!--Where the pivot is-->
+      <parent>base_link</parent>
+      <child>acu_roll_link</child>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <limit>
+          <lower>-0.5236</lower> <!-- Minimum position (in radians) -->
+          <upper>0.5236</upper>  <!-- Maximum position (in radians) -->
+          <effort>10000.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
+          <velocity>0.022</velocity> <!-- Maximum velocity (optional, in meters/second) -->
+        </limit>
+      </axis>
+    </joint>
+
+    <!-- ACU pitch (prismatic, 1.83 kg, range [-0.1195, 0] m).
+         <topic> is mandatory here: the plugin's default
+         "/model/<m>/joint/<j>/0/cmd_pos" has a path segment ("0") that
+         starts with a digit, which ROS 2 topic-name validation rejects,
+         so parameter_bridge cannot bridge it. The SDF therefore spells
+         out the actual contract topic; this is not a "rebind for the
+         bridge", it is the SDF *declaring* what name to use because
+         the plugin default is unreachable from ROS.
+         Gains tuned for the prismatic mass: defaults of p=1/i=0.1/d=0.01
+         produce ~0.05 N for a 50 mm error, which is not enough to
+         drive the joint within reasonable settling time. cmd_max/min
+         clamp to the SDF effort limit. -->
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>acu_tilt_joint</joint_name>
+      <topic>/model/glider_nautilus/joint/acu_tilt_joint/cmd_pos</topic>
+      <p_gain>30000</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>3000</d_gain>
+      <!-- cmd_max/min must match (or stay below) the SDF joint <effort>
+           cap above. Wave forcing at z=-3 spawn pushes ~1000 N on the
+           mass-shifter axis, so we need substantially more headroom to
+           hold a steady-state position against it. -->
+      <cmd_max>10000</cmd_max>
+      <cmd_min>-10000</cmd_min>
+    </plugin>
+
+    <plugin
+      filename="gz-sim-joint-position-controller-system"
+      name="gz::sim::systems::JointPositionController">
+      <joint_name>acu_roll_joint</joint_name>
+      <topic>/model/glider_nautilus/joint/acu_roll_joint/cmd_pos</topic>
+      <p_gain>50</p_gain>
+      <i_gain>0</i_gain>
+      <d_gain>5</d_gain>
+      <cmd_max>10000</cmd_max>
+      <cmd_min>-10000</cmd_min>
+    </plugin>
+
     <plugin
       filename="gz-sim-linearbatteryplugin-system"
       name="gz::sim::systems::LinearBatteryPlugin">
@@ -496,7 +785,9 @@
       <start_on_motion>true</start_on_motion>
     </plugin>
 
+    <!--        -->
     <!-- NAVSAT -->
+    <!--        -->
 
     <link name="navsat_link">
       <inertial>
@@ -530,7 +821,9 @@
       name="gz::sim::systems::NavSat">
     </plugin>
 
+    <!--               -->
     <!-- OTHER PLUGINS -->
+    <!--               -->
 
     <plugin
       filename="gz-sim-odometry-publisher-system"

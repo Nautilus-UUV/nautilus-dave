@@ -85,22 +85,17 @@ source install/setup.bash
 
 ### Testing Setup
 
-We need to start 3 components: 
-1. The Hardware Abstraction layer 
+Run:
 ```bash
-ros2 launch nautilus_hal bridge.launch.py  # launches all the interfaces
-````
-2. The control logic (for this there is a mocked integration test)
-```bash
-ros2 run py_pkg bcu_oscillator 
-``` 
-3. The DAVE simulation with Nautilus
-```bash
-ros2 launch dave_demos dave_robot.launch.py   z:=-5 namespace:=glider_nautilus world_name:=dave_ocean_waves paused:=false
+ros2 launch nautilus_hal sawtooth_sim.launch.py \
+    headless:=false \
+    mission_autostart:=true \
+    target_pressure_pa:=147150.0 \
+    angle_rad:=0.6109 \
+    n_resurfaces:=1
 ```
 
-Now, if everything is working correctly, you should see the Nautilus Glider reach for the surface and dive back down in an oscillary motion.
-
+You should see the glider going in a sawtooth motion. You can configure the depth and the number of resurfaces. See the the launch files in the `dave_ws/src/dave/hal/nautilus_hal/launch` for a complete list.
 
 ## Branch Structure
 
