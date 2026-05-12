@@ -92,10 +92,27 @@ ros2 launch nautilus_hal sawtooth_sim.launch.py \
     mission_autostart:=true \
     target_pressure_pa:=147150.0 \
     angle_rad:=0.6109 \
-    n_resurfaces:=1
+    n_resurfaces:=3
 ```
 
 You should see the glider going in a sawtooth motion. You can configure the depth and the number of resurfaces. See the the launch files in the `dave_ws/src/dave/hal/nautilus_hal/launch` for a complete list.
+
+### Data Collection
+
+```bash
+ros2 launch nautilus_hal sawtooth_sim.launch.py \
+    headless:=true \
+    mission_autostart:=true \
+    target_pressure_pa:=147150.0 \
+    angle_rad:=0.6109 \
+    n_resurfaces:=3 \
+    record:=true
+```
+
+**args:**
+- `record:=true` to enable databag generation
+- `run_id:={ID}` to give a predefined run_id that is concatenated together with the timestamp
+- `bag_path:={PATH}` if you want to override the default data collection path
 
 ## Branch Structure
 
@@ -161,3 +178,4 @@ source install/setup.bash
 # Test your changes (launch files, simulations, etc.)
 ros2 launch <your_test_commands>
 ```
+

@@ -2,8 +2,8 @@ from py_pkg.uuv_ros_core import UUVTopics, create_publisher_for_topic
 from sensor_msgs.msg import FluidPressure
 from std_msgs.msg import Int32
 
+from ..constants import SimTopics, sea_pressure_pa
 from .bridge_base import SimBridgeNode, run_bridge
-from .constants import SimTopics, sea_pressure_pa
 
 
 class ExternalSensorSimBridge(SimBridgeNode):

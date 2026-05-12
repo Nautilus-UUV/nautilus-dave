@@ -39,6 +39,8 @@ def generate_launch_description():
     gui = LaunchConfiguration("gui")
     headless = LaunchConfiguration("headless")
     mission_autostart = LaunchConfiguration("mission_autostart")
+    record = LaunchConfiguration("record")
+    run_id = LaunchConfiguration("run_id")
 
     bridge_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -49,7 +51,8 @@ def generate_launch_description():
                     "bridge.launch.py",
                 )
             ]
-        )
+        ),
+        launch_arguments={"record": record, "run_id": run_id}.items(),
     )
 
     # Spawn deeper at z=-5
@@ -169,6 +172,19 @@ def generate_launch_description():
                     "Informational: SURFACE self-terminates ~10 s after reaching "
                     "the surface, but the launch keeps Gazebo and the control "
                     "stack running so the operator can fire another mission."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "record",
+                default_value="false",
+                description="If true, also record HAL topics to an MCAP rosbag.",
+            ),
+            DeclareLaunchArgument(
+                "run_id",
+                default_value="surface",
+                description=(
+                    "Run identifier baked into the bag output dir as "
+                    "./sim_data/{run_id}_{timestamp}/raw."
                 ),
             ),
             bridge_launch,

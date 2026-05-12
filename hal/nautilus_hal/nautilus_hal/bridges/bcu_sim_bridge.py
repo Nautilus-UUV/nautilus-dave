@@ -11,9 +11,9 @@ from py_pkg.uuv_ros_core import (
 from sensor_msgs.msg import FluidPressure
 from std_msgs.msg import Float32, Float64, Int32
 
+from ..constants import Conversions, SimTopics, sea_pressure_pa
+from ..injectors.fault_injection import BCUFaultInjector
 from .bridge_base import SimBridgeNode, run_bridge
-from .constants import Conversions, SimTopics, sea_pressure_pa
-from .fault_injection import BCUFaultInjector
 
 
 class BCUSimBridge(SimBridgeNode):

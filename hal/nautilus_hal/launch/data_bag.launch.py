@@ -1,33 +1,28 @@
 import os
-from datetime import datetime
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def is_running_in_container():
-    """Helper function to detect Docker or Apptainer/Singularity environment."""
-    return (
-        os.path.exists("/.dockerenv")
-        or "APPTAINER_CONTAINER" in os.environ
-        or "SINGULARITY_CONTAINER" in os.environ
-    )
-
-
 def generate_launch_description():
-    time_str = datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
-
-    if is_running_in_container():
-        bag_path = f"/ros2_ws/sim_data/raw/dive_{time_str}"
-    else:
-        bag_path = f"./sim_data/raw/dive_{time_str}"
+    run_id = LaunchConfiguration("run_id")
 
     return LaunchDescription(
         [
-            # 1. Start-Up: Interfaces
+            DeclareLaunchArgument(
+                "run_id",
+                default_value="databag",
+                description=(
+                    "Run identifier baked into the bag output dir as "
+                    "./sim_data/{run_id}_{timestamp}/raw."
+                ),
+            ),
+            # 1. Start-Up: Interfaces + rosbag recording (bridge.launch.py
+            # owns the bag path + topic list under its record/run_id args).
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     [
@@ -38,7 +33,7 @@ def generate_launch_description():
                         )
                     ]
                 ),
-                # launch_arguments={"use_sim_time": "true"}.items(),
+                launch_arguments={"record": "true", "run_id": run_id}.items(),
             ),
             # 2. Start-Up: BCU Oscillator
             Node(
@@ -46,7 +41,6 @@ def generate_launch_description():
                 executable="bcu_oscillator",
                 name="bcu_oscillator",
                 output="screen",
-                # parameters=[{"use_sim_time": True}],
             ),
             # 3. Start-Up: Dave Robot Simulation
             IncludeLaunchDescription(
@@ -66,31 +60,7 @@ def generate_launch_description():
                     "paused": "false",
                     "gui": "true",
                     "headless": "true",
-                    # "use_sim_time": "true",
                 }.items(),
-            ),
-            # 4. Data Collection: Rosbag Record
-            ExecuteProcess(
-                cmd=[
-                    "ros2",
-                    "bag",
-                    "record",
-                    "-o",
-                    bag_path,
-                    "-s",
-                    "mcap",
-                    "--compression-mode",
-                    "file",
-                    "--compression-format",
-                    "zstd",
-                    "/imu/left",
-                    "/external/pressure",
-                    "/bcu/rpm",
-                    "/bcu/flow_rate",
-                    "/bcu/pressure",
-                    "/bcu/rpm/fault",
-                ],
-                output="screen",
             ),
         ]
     )

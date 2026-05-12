@@ -4,8 +4,8 @@ from py_pkg.uuv_ros_core import (
 )
 from sensor_msgs.msg import Imu
 
+from ..constants import SimTopics
 from .bridge_base import SimBridgeNode, run_bridge
-from .constants import SimTopics
 
 
 class IMUSimBridge(SimBridgeNode):

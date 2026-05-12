@@ -30,8 +30,8 @@ Not for hardware -- production replaces this with the real EKF stack.
 from nav_msgs.msg import Odometry
 from py_pkg.uuv_ros_core import UUVTopics, create_publisher_for_topic
 
+from ..constants import SimTopics
 from .bridge_base import SimBridgeNode, run_bridge
-from .constants import SimTopics
 
 
 def _quat_inverse(q):

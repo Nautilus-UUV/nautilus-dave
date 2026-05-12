@@ -18,8 +18,8 @@ from py_pkg.uuv_ros_core import (
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 
+from ..constants import Conversions, SimDebugTopics, SimTopics
 from .bridge_base import SimBridgeNode, run_bridge
-from .constants import Conversions, SimDebugTopics, SimTopics
 
 
 class ACUSimBridge(SimBridgeNode):

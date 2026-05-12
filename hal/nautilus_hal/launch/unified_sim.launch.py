@@ -2,15 +2,32 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    record = LaunchConfiguration("record")
+    run_id = LaunchConfiguration("run_id")
+
     return LaunchDescription(
         [
-            # 1. Start-Up: Interfaces
+            DeclareLaunchArgument(
+                "record",
+                default_value="false",
+                description="If true, also record HAL topics to an MCAP rosbag.",
+            ),
+            DeclareLaunchArgument(
+                "run_id",
+                default_value="unified",
+                description=(
+                    "Run identifier baked into the bag output dir as "
+                    "./sim_data/{run_id}_{timestamp}/raw."
+                ),
+            ),
+            # 1. Start-Up: Interfaces (with optional bag recording).
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     [
@@ -20,7 +37,8 @@ def generate_launch_description():
                             "bridge.launch.py",
                         )
                     ]
-                )
+                ),
+                launch_arguments={"record": record, "run_id": run_id}.items(),
             ),
             # 2. Start-Up: BCU Oscillator
             Node(

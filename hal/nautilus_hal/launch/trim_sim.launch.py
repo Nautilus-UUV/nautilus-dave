@@ -35,6 +35,8 @@ def generate_launch_description():
     gui = LaunchConfiguration("gui")
     headless = LaunchConfiguration("headless")
     mission_autostart = LaunchConfiguration("mission_autostart")
+    record = LaunchConfiguration("record")
+    run_id = LaunchConfiguration("run_id")
 
     bridge_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -45,7 +47,8 @@ def generate_launch_description():
                     "bridge.launch.py",
                 )
             ]
-        )
+        ),
+        launch_arguments={"record": record, "run_id": run_id}.items(),
     )
 
     # Same spawn pose as unified_sim.launch.py / Tier 3 tests. `gui` is held
@@ -170,6 +173,19 @@ def generate_launch_description():
                 description=(
                     "Informational: TRIM_AND_NEUTRAL never self-terminates, so the "
                     "launch holds either way. Documents intent when running from CLI."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "record",
+                default_value="false",
+                description="If true, also record HAL topics to an MCAP rosbag.",
+            ),
+            DeclareLaunchArgument(
+                "run_id",
+                default_value="trim",
+                description=(
+                    "Run identifier baked into the bag output dir as "
+                    "./sim_data/{run_id}_{timestamp}/raw."
                 ),
             ),
             bridge_launch,
