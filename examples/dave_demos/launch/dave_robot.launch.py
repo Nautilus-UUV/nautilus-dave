@@ -18,6 +18,7 @@ def launch_setup(context, *args, **kwargs):
     verbose = LaunchConfiguration("verbose")
     namespace = LaunchConfiguration("namespace")
     world_name = LaunchConfiguration("world_name")
+    description_file = LaunchConfiguration("description_file")
     x = LaunchConfiguration("x")
     y = LaunchConfiguration("y")
     z = LaunchConfiguration("z")
@@ -69,7 +70,12 @@ def launch_setup(context, *args, **kwargs):
         ],
     )
 
-    # Include the second launch file with model name
+    # description_file is always forwarded — its default mirrors
+    # upload_robot.launch.py's canonical path so the existing flow is
+    # bit-identical when no parent overrides. We can't conditionally
+    # skip forwarding here: LaunchContext inheritance would still leak
+    # this launch's value into upload_robot.launch.py and stomp on its
+    # default.
     robot_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -86,6 +92,7 @@ def launch_setup(context, *args, **kwargs):
             "gui": gui,
             "use_sim_time": use_sim_time,
             "namespace": namespace,
+            "description_file": description_file,
             "x": x,
             "y": y,
             "z": z,
@@ -179,6 +186,24 @@ def generate_launch_description():
             "use_ned_frame",
             default_value="false",
             description="Flag to indicate whether to use the north-east-down frame",
+        ),
+        DeclareLaunchArgument(
+            "description_file",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("dave_robot_models"),
+                    "description",
+                    LaunchConfiguration("namespace"),
+                    "model.sdf",
+                ]
+            ),
+            description=(
+                "Absolute path to the SDF to spawn. Defaults to the "
+                "canonical model.sdf in dave_robot_models' share dir. "
+                "HAL sim launches override this with a Jinja-rendered "
+                "sample variant when the scenario YAML carries a "
+                "rig.hydrodynamics block."
+            ),
         ),
     ]
 

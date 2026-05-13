@@ -25,6 +25,7 @@ from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
     IncludeLaunchDescription,
+    LogInfo,
     OpaqueFunction,
     TimerAction,
 )
@@ -33,6 +34,45 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
 
 _MISSION_ID_SURFACE = 2
+
+
+def _build_robot_launch(context, *_args, **_kwargs):
+    """Render the SDF from the scenario YAML (if hydrodynamics block set)
+    and include dave_robot.launch.py with the resulting path.
+
+    A scenario without a `rig.hydrodynamics:` block round-trips to the
+    canonical model.sdf so this code path is bit-identical to today's
+    launch for nominal/baseline.
+    """
+    from nautilus_hal.render_sdf import description_file_for_scenario
+
+    scenario_path = LaunchConfiguration("scenario").perform(context)
+    description_file = description_file_for_scenario(scenario_path)
+    return [
+        LogInfo(msg=f"Spawning SDF: {description_file}"),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                [
+                    os.path.join(
+                        FindPackageShare("dave_demos").find("dave_demos"),
+                        "launch",
+                        "dave_robot.launch.py",
+                    )
+                ]
+            ),
+            launch_arguments={
+                "z": "-5",
+                "roll": "3.141592653589793",
+                "yaw": "1.5707963267948966",
+                "namespace": "glider_nautilus",
+                "world_name": "dave_ocean_waves",
+                "paused": "false",
+                "gui": LaunchConfiguration("gui").perform(context),
+                "headless": LaunchConfiguration("headless").perform(context),
+                "description_file": description_file,
+            }.items(),
+        ),
+    ]
 
 
 def _maybe_autostart(context, *_args, **_kwargs):
@@ -92,8 +132,6 @@ def _maybe_autostart(context, *_args, **_kwargs):
 
 
 def generate_launch_description():
-    gui = LaunchConfiguration("gui")
-    headless = LaunchConfiguration("headless")
     record = LaunchConfiguration("record")
     run_id = LaunchConfiguration("run_id")
     scenario = LaunchConfiguration("scenario")
@@ -115,28 +153,9 @@ def generate_launch_description():
         }.items(),
     )
 
-    robot_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            [
-                os.path.join(
-                    FindPackageShare("dave_demos").find("dave_demos"),
-                    "launch",
-                    "dave_robot.launch.py",
-                )
-            ]
-        ),
-        launch_arguments={
-            "z": "-5",
-            "roll": "3.141592653589793",
-            "yaw": "1.5707963267948966",
-            "namespace": "glider_nautilus",
-            "world_name": "dave_ocean_waves",
-            "paused": "false",
-            "gui": gui,
-            "headless": headless,
-        }.items(),
-    )
-
+    # Robot spawn is built inside `_build_robot_launch`, which resolves
+    # the SDF path from the scenario YAML (canonical when nominal,
+    # Jinja-rendered when a sampled `rig.hydrodynamics:` block is set).
     control_stack_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -208,7 +227,7 @@ def generate_launch_description():
                 ),
             ),
             bridge_launch,
-            robot_launch,
+            OpaqueFunction(function=_build_robot_launch),
             control_stack_launch,
             OpaqueFunction(function=_maybe_autostart),
         ]

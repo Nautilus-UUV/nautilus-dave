@@ -12,6 +12,10 @@
   <depend>can_msgs</depend>
   <depend>geometry_msgs</depend>
   <depend>py_pkg</depend>
+  <depend>python3-jinja2</depend>
+
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>dave_robot_models</test_depend>
 
   <export>
     <build_type>ament_python</build_type>
