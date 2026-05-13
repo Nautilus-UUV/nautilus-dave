@@ -28,6 +28,7 @@ Not for hardware -- production replaces this with the real EKF stack.
 """
 
 from nav_msgs.msg import Odometry
+from py_pkg.scenarios.spec.rig import SimSpec
 from py_pkg.uuv_ros_core import UUVTopics, create_publisher_for_topic
 
 from ..constants import SimTopics
@@ -58,6 +59,9 @@ class GTPoseBridge(SimBridgeNode):
         self._spawn_q_inv: tuple | None = None
 
     def setup_bridges(self):
+        self.declare_parameter("model_name", SimSpec().model_name)
+        self.model_name = self.get_parameter("model_name").value
+
         # Factory matches POSITION_ESTIMATION's UUVQoS.CONTROL profile so
         # acu_node and pathfinding_node's existing subscriptions accept it
         # without a durability/reliability mismatch.

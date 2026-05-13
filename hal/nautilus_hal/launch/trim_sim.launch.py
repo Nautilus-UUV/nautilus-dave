@@ -11,8 +11,12 @@ pressure and hold it there in trim:
 Reused by ``test/sim/test_trim_neutral_sim.py``; also runnable on its own
 for visualization or bag recording, e.g.
 
-    ros2 launch nautilus_hal trim_sim.launch.py \\
-        headless:=false mission_autostart:=true target_pressure_pa:=75383.0
+    ros2 launch nautilus_hal trim_sim.launch.py headless:=false \\
+        mission_autostart:=true target_pressure_pa:=75383.0
+
+Mission data is not in the scenario YAML. The launch args above drive
+the optional MissionCommand + start auto-publish; for anything richer
+than that, publish ``/path`` and ``/command`` directly.
 """
 
 import os
@@ -22,21 +26,86 @@ from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
     IncludeLaunchDescription,
+    OpaqueFunction,
     TimerAction,
 )
-from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
 
 
+_MISSION_ID_TRIM = 0
+
+
+def _maybe_autostart(context, *_args, **_kwargs):
+    """Emit MissionCommand + start publishes if mission_autostart is true.
+
+    /path and /command are UUVQoS.COMMAND (RELIABLE + TRANSIENT_LOCAL).
+    `ros2 topic pub` defaults to volatile durability, so we request
+    transient_local explicitly or pathfinding's subscription rejects on
+    a durability mismatch.
+    """
+    autostart = LaunchConfiguration("mission_autostart").perform(context).lower() == "true"
+    if not autostart:
+        return []
+    target_pressure_pa = float(LaunchConfiguration("target_pressure_pa").perform(context))
+
+    qos_args = [
+        "--qos-reliability",
+        "reliable",
+        "--qos-durability",
+        "transient_local",
+    ]
+    return [
+        TimerAction(
+            period=8.0,
+            actions=[
+                ExecuteProcess(
+                    cmd=[
+                        "ros2",
+                        "topic",
+                        "pub",
+                        "--once",
+                        *qos_args,
+                        "/path",
+                        "nautilus_msgs/msg/MissionCommand",
+                        (
+                            f"{{mission_id: {_MISSION_ID_TRIM}, "
+                            f"target_pressure_pa: {target_pressure_pa}, "
+                            f"angle_rad: 0.0, n_resurfaces: 0}}"
+                        ),
+                    ],
+                    output="screen",
+                )
+            ],
+        ),
+        TimerAction(
+            period=10.0,
+            actions=[
+                ExecuteProcess(
+                    cmd=[
+                        "ros2",
+                        "topic",
+                        "pub",
+                        "--once",
+                        *qos_args,
+                        "/command",
+                        "std_msgs/msg/String",
+                        "{data: start}",
+                    ],
+                    output="screen",
+                )
+            ],
+        ),
+    ]
+
+
 def generate_launch_description():
-    target_pressure_pa = LaunchConfiguration("target_pressure_pa")
     gui = LaunchConfiguration("gui")
     headless = LaunchConfiguration("headless")
-    mission_autostart = LaunchConfiguration("mission_autostart")
     record = LaunchConfiguration("record")
     run_id = LaunchConfiguration("run_id")
+    scenario = LaunchConfiguration("scenario")
 
     bridge_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -48,11 +117,15 @@ def generate_launch_description():
                 )
             ]
         ),
-        launch_arguments={"record": record, "run_id": run_id}.items(),
+        launch_arguments={
+            "record": record,
+            "run_id": run_id,
+            "scenario": scenario,
+        }.items(),
     )
 
-    # Same spawn pose as unified_sim.launch.py / Tier 3 tests. `gui` is held
-    # at "true" by convention; `headless` is the actual display switch.
+    # Same spawn pose as the Tier 3 sim tests. `gui` is held at "true" by
+    # convention; `headless` is the actual display switch.
     robot_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -75,7 +148,6 @@ def generate_launch_description():
         }.items(),
     )
 
-    # Same control stack the bench will run; sim-agnostic by design.
     control_stack_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -85,69 +157,43 @@ def generate_launch_description():
                     "control_stack.launch.py",
                 )
             ]
-        )
-    )
-
-    # CLI shortcut: when mission_autostart:=true, fire the same MissionCommand
-    # + "start" the test publishes by hand. /path and /command are
-    # UUVQoS.COMMAND (RELIABLE + TRANSIENT_LOCAL) — `ros2 topic pub` defaults
-    # to volatile durability, so we must request transient_local explicitly
-    # or pathfinding's subscription rejects on a durability mismatch.
-    qos_args = [
-        "--qos-reliability",
-        "reliable",
-        "--qos-durability",
-        "transient_local",
-    ]
-    autostart_publish = TimerAction(
-        period=8.0,
-        actions=[
-            ExecuteProcess(
-                cmd=[
-                    "ros2",
-                    "topic",
-                    "pub",
-                    "--once",
-                    *qos_args,
-                    "/path",
-                    "nautilus_msgs/msg/MissionCommand",
-                    [
-                        "{mission_id: 0, target_pressure_pa: ",
-                        target_pressure_pa,
-                        ", angle_rad: 0.0, n_resurfaces: 0}",
-                    ],
-                ],
-                output="screen",
-            )
-        ],
-        condition=IfCondition(mission_autostart),
-    )
-    autostart_start = TimerAction(
-        period=10.0,
-        actions=[
-            ExecuteProcess(
-                cmd=[
-                    "ros2",
-                    "topic",
-                    "pub",
-                    "--once",
-                    *qos_args,
-                    "/command",
-                    "std_msgs/msg/String",
-                    "{data: start}",
-                ],
-                output="screen",
-            )
-        ],
-        condition=IfCondition(mission_autostart),
+        ),
+        launch_arguments={"scenario": scenario}.items(),
     )
 
     return LaunchDescription(
         [
             DeclareLaunchArgument(
+                "scenario",
+                default_value=os.path.join(
+                    FindPackageShare("py_pkg").find("py_pkg"),
+                    "scenarios",
+                    "library",
+                    "nominal.yaml",
+                ),
+                description=(
+                    "Path to a scenario YAML. Parameterizes the HAL bridges "
+                    "(rig block) and the control stack (control block); "
+                    "defaults to the installed nominal (fault-injection off). "
+                    "Mission data is NOT in the YAML — see mission_autostart."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "mission_autostart",
+                default_value="false",
+                description=(
+                    "If true, the launch publishes the trim MissionCommand "
+                    "(mission_id=0) plus `start` ~8 s after bringup, matching "
+                    "what the sim test driver does by hand."
+                ),
+            ),
+            DeclareLaunchArgument(
                 "target_pressure_pa",
                 default_value="75383.0",
-                description="Hold-depth gauge pressure setpoint in Pa (~7.5 m).",
+                description=(
+                    "Trim target in gauge Pa (~7.5 m). Only used when "
+                    "mission_autostart is true."
+                ),
             ),
             DeclareLaunchArgument(
                 "gui",
@@ -158,14 +204,6 @@ def generate_launch_description():
                 "headless",
                 default_value="true",
                 description="True hides the Gazebo GUI; set false to visualize.",
-            ),
-            DeclareLaunchArgument(
-                "mission_autostart",
-                default_value="false",
-                description=(
-                    "Publish MissionCommand + start to /path and /command after "
-                    "an 8/10 s delay. Off when the test drives the mission itself."
-                ),
             ),
             DeclareLaunchArgument(
                 "hold",
@@ -191,7 +229,6 @@ def generate_launch_description():
             bridge_launch,
             robot_launch,
             control_stack_launch,
-            autostart_publish,
-            autostart_start,
+            OpaqueFunction(function=_maybe_autostart),
         ]
     )

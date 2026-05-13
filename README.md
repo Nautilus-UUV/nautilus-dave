@@ -113,6 +113,13 @@ ros2 launch nautilus_hal sawtooth_sim.launch.py \
 - `record:=true` to enable databag generation
 - `run_id:={ID}` to give a predefined run_id that is concatenated together with the timestamp
 - `bag_path:={PATH}` if you want to override the default data collection path
+- `scenario:={PATH}` selects the scenario YAML driving gains, plant, bridge publish rates, and fault injection. Defaults to the installed `library/nominal.yaml` (perturbation-free, fault-injection off). To turn BCU fault injection back on (MTTF ~60 s), pick `baseline.yaml`:
+
+  ```bash
+  scenario:=$(ros2 pkg prefix py_pkg)/share/py_pkg/scenarios/library/baseline.yaml
+  ```
+
+  Same flag works for `trim_sim.launch.py`, `sawtooth_sim.launch.py`, `surface_sim.launch.py`, `bridge.launch.py`, and `control_stack.launch.py`.
 
 ## Branch Structure
 

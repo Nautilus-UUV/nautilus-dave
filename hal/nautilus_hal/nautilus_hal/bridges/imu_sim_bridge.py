@@ -1,3 +1,4 @@
+from py_pkg.scenarios.spec.rig import SimSpec
 from py_pkg.uuv_ros_core import (
     UUVTopics,
     create_publisher_for_topic,
@@ -13,6 +14,9 @@ class IMUSimBridge(SimBridgeNode):
         super().__init__("nautilus_imu_bridge")
 
     def setup_bridges(self):
+        self.declare_parameter("model_name", SimSpec().model_name)
+        self.model_name = self.get_parameter("model_name").value
+
         self.imu_left_pub = create_publisher_for_topic(self, UUVTopics.IMU_LEFT)
         self.imu_right_pub = create_publisher_for_topic(self, UUVTopics.IMU_RIGHT)
 
