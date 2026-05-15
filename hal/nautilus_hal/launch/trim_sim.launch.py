@@ -34,7 +34,6 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
 
-
 _MISSION_ID_TRIM = 0
 
 
@@ -85,10 +84,14 @@ def _maybe_autostart(context, *_args, **_kwargs):
     transient_local explicitly or pathfinding's subscription rejects on
     a durability mismatch.
     """
-    autostart = LaunchConfiguration("mission_autostart").perform(context).lower() == "true"
+    autostart = (
+        LaunchConfiguration("mission_autostart").perform(context).lower() == "true"
+    )
     if not autostart:
         return []
-    target_pressure_pa = float(LaunchConfiguration("target_pressure_pa").perform(context))
+    target_pressure_pa = float(
+        LaunchConfiguration("target_pressure_pa").perform(context)
+    )
 
     qos_args = [
         "--qos-reliability",
@@ -143,6 +146,7 @@ def _maybe_autostart(context, *_args, **_kwargs):
 def generate_launch_description():
     record = LaunchConfiguration("record")
     run_id = LaunchConfiguration("run_id")
+    sampler_id = LaunchConfiguration("sampler_id")
     scenario = LaunchConfiguration("scenario")
 
     bridge_launch = IncludeLaunchDescription(
@@ -158,6 +162,7 @@ def generate_launch_description():
         launch_arguments={
             "record": record,
             "run_id": run_id,
+            "sampler_id": sampler_id,
             "scenario": scenario,
         }.items(),
     )
@@ -241,7 +246,15 @@ def generate_launch_description():
                 default_value="trim",
                 description=(
                     "Run identifier baked into the bag output dir as "
-                    "./sim_data/{run_id}_{timestamp}/raw."
+                    "./sim_data/[{sampler_id}/]{run_id}_{timestamp}/raw."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "sampler_id",
+                default_value="",
+                description=(
+                    "Optional parent folder for grouping bags from one sampler "
+                    "invocation. Empty (default) preserves the historical layout."
                 ),
             ),
             bridge_launch,

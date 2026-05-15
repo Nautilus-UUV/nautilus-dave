@@ -134,6 +134,7 @@ def _maybe_autostart(context, *_args, **_kwargs):
 def generate_launch_description():
     record = LaunchConfiguration("record")
     run_id = LaunchConfiguration("run_id")
+    sampler_id = LaunchConfiguration("sampler_id")
     scenario = LaunchConfiguration("scenario")
 
     bridge_launch = IncludeLaunchDescription(
@@ -149,6 +150,7 @@ def generate_launch_description():
         launch_arguments={
             "record": record,
             "run_id": run_id,
+            "sampler_id": sampler_id,
             "scenario": scenario,
         }.items(),
     )
@@ -223,7 +225,15 @@ def generate_launch_description():
                 default_value="surface",
                 description=(
                     "Run identifier baked into the bag output dir as "
-                    "./sim_data/{run_id}_{timestamp}/raw."
+                    "./sim_data/[{sampler_id}/]{run_id}_{timestamp}/raw."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "sampler_id",
+                default_value="",
+                description=(
+                    "Optional parent folder for grouping bags from one sampler "
+                    "invocation. Empty (default) preserves the historical layout."
                 ),
             ),
             bridge_launch,

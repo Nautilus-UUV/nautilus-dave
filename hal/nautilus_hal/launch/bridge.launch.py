@@ -4,8 +4,7 @@ from datetime import datetime
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
-from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, TextSubstitution
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
@@ -78,12 +77,61 @@ def _wire_bridges(context, *_args, **_kwargs):
     ]
 
 
-def generate_launch_description():
-    # Resolved once per launch invocation so every consumer of the default
-    # bag_path sees the same timestamp string.
-    timestamp = datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
-    sim_data_root = _sim_data_root()
+def _maybe_record(context, *_args, **_kwargs):
+    """Resolve the bag output path and emit a rosbag ExecuteProcess if record:=true.
 
+    The synthesized default is `{sim_data_root}/[{sampler_id}/]{run_id}_{ts}/raw`.
+    An empty sampler_id (the default) collapses the middle segment so the
+    historical layout `{sim_data_root}/{run_id}_{ts}/raw` is preserved
+    bit-for-bit. An explicit `bag_path:=...` short-circuits the synthesis.
+    """
+    if LaunchConfiguration("record").perform(context).lower() != "true":
+        return []
+
+    explicit = LaunchConfiguration("bag_path").perform(context).strip()
+    if explicit:
+        bag_path = explicit
+    else:
+        timestamp = datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
+        sampler_id = LaunchConfiguration("sampler_id").perform(context).strip()
+        run_id = LaunchConfiguration("run_id").perform(context).strip()
+        parts = [_sim_data_root()]
+        if sampler_id:
+            parts.append(sampler_id)
+        parts.append(f"{run_id}_{timestamp}")
+        parts.append("raw")
+        bag_path = "/".join(parts)
+
+    # Topic list matches what UG-anomaly_detection's downstream pipeline
+    # expects. /bcu/rpm/fault is sim-only (fault injector diagnostic) so
+    # it stays as a literal here rather than going through UUVTopics.
+    return [
+        ExecuteProcess(
+            cmd=[
+                "ros2",
+                "bag",
+                "record",
+                "-o",
+                bag_path,
+                "-s",
+                "mcap",
+                "--compression-mode",
+                "file",
+                "--compression-format",
+                "zstd",
+                "/imu/left",
+                "/external/pressure",
+                "/bcu/rpm",
+                "/bcu/flow_rate",
+                "/bcu/pressure",
+                "/bcu/rpm/fault",
+            ],
+            output="screen",
+        )
+    ]
+
+
+def generate_launch_description():
     scenario_arg = DeclareLaunchArgument(
         "scenario",
         default_value=_default_scenario_path(),
@@ -100,57 +148,41 @@ def generate_launch_description():
             "alongside the bridges."
         ),
     )
+    sampler_id_arg = DeclareLaunchArgument(
+        "sampler_id",
+        default_value="",
+        description=(
+            "Optional parent folder for grouping bags from one sampler "
+            "invocation: ./sim_data/{sampler_id}/{run_id}_{timestamp}/raw. "
+            "Empty (the default) drops the middle segment, preserving the "
+            "historical ./sim_data/{run_id}_{timestamp}/raw layout."
+        ),
+    )
     run_id_arg = DeclareLaunchArgument(
         "run_id",
         default_value="dive",
         description=(
             "Run identifier baked into the bag output dir as "
-            "./sim_data/{run_id}_{timestamp}/raw."
+            "./sim_data/[{sampler_id}/]{run_id}_{timestamp}/raw."
         ),
     )
     bag_path_arg = DeclareLaunchArgument(
         "bag_path",
-        default_value=[
-            TextSubstitution(text=f"{sim_data_root}/"),
-            LaunchConfiguration("run_id"),
-            TextSubstitution(text=f"_{timestamp}/raw"),
-        ],
-        description="Full output directory for the rosbag; overrides run_id-based default.",
+        default_value="",
+        description=(
+            "Full output directory for the rosbag; when non-empty this "
+            "overrides the sampler_id/run_id synthesis above."
+        ),
     )
 
     return LaunchDescription(
         [
             scenario_arg,
             record_arg,
+            sampler_id_arg,
             run_id_arg,
             bag_path_arg,
             OpaqueFunction(function=_wire_bridges),
-            # Optional rosbag recording — gated on record:=true. Topic list
-            # matches what UG-anomaly_detection's downstream pipeline expects.
-            # /bcu/rpm/fault is sim-only (fault injector diagnostic) so it
-            # stays as a literal here rather than going through UUVTopics.
-            ExecuteProcess(
-                condition=IfCondition(LaunchConfiguration("record")),
-                cmd=[
-                    "ros2",
-                    "bag",
-                    "record",
-                    "-o",
-                    LaunchConfiguration("bag_path"),
-                    "-s",
-                    "mcap",
-                    "--compression-mode",
-                    "file",
-                    "--compression-format",
-                    "zstd",
-                    "/imu/left",
-                    "/external/pressure",
-                    "/bcu/rpm",
-                    "/bcu/flow_rate",
-                    "/bcu/pressure",
-                    "/bcu/rpm/fault",
-                ],
-                output="screen",
-            ),
+            OpaqueFunction(function=_maybe_record),
         ]
     )
