@@ -121,6 +121,29 @@ ros2 launch nautilus_hal sawtooth_sim.launch.py \
 
   Same flag works for `trim_sim.launch.py`, `sawtooth_sim.launch.py`, `surface_sim.launch.py`, `bridge.launch.py`, and `control_stack.launch.py`.
 
+
+### UI Connection
+
+#### Mission Laptop
+
+```bash
+mosquitto -c /home/girji/dave_ws/nautilus-command-bridge-frontend/mosquitto/mosquitto.conf -v
+```
+
+```bash
+npm run dev
+```
+
+#### Pi
+
+```bash
+ros2 run py_pkg mqtt_bridge_node
+```
+
+```bash
+ros2 launch nautilus_hal trim_sim.launch.py headless:=false mission_autostart:=false
+```
+
 ## Branch Structure
 
 Our fork uses a structured branching model:
