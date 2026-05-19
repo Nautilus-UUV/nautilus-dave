@@ -148,6 +148,8 @@ def generate_launch_description():
     run_id = LaunchConfiguration("run_id")
     sampler_id = LaunchConfiguration("sampler_id")
     scenario = LaunchConfiguration("scenario")
+    bag_path = LaunchConfiguration("bag_path")
+    bag_compression = LaunchConfiguration("bag_compression")
 
     bridge_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
@@ -164,6 +166,8 @@ def generate_launch_description():
             "run_id": run_id,
             "sampler_id": sampler_id,
             "scenario": scenario,
+            "bag_path": bag_path,
+            "bag_compression": bag_compression,
         }.items(),
     )
 
@@ -255,6 +259,25 @@ def generate_launch_description():
                 description=(
                     "Optional parent folder for grouping bags from one sampler "
                     "invocation. Empty (default) preserves the historical layout."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "bag_path",
+                default_value="",
+                description=(
+                    "Explicit bag output directory; overrides the "
+                    "sampler_id/run_id synthesis. Sweep runners set this so "
+                    "they can post-process the bag deterministically."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "bag_compression",
+                default_value="file",
+                description=(
+                    "Rosbag2 compression mode. 'file' compresses each MCAP at "
+                    "shutdown (default); 'none' disables it so a SIGKILL during "
+                    "teardown can't strip metadata.yaml or leave half-finalized "
+                    "files. Sweep runners pass 'none' and compress after each reap."
                 ),
             ),
             bridge_launch,

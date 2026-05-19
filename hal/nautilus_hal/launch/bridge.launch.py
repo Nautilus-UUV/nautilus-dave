@@ -102,33 +102,51 @@ def _maybe_record(context, *_args, **_kwargs):
         parts.append("raw")
         bag_path = "/".join(parts)
 
+    # Ground-truth odometry comes straight off Gazebo via the parameter
+    # bridge in dave_robot_models
+    from py_pkg.scenarios.loader import load_scenario
+
+    scenario = load_scenario(LaunchConfiguration("scenario").perform(context))
+    gt_odom_topic = f"/model/{scenario.rig.sim.model_name}/odometry"
+
+    # Sweep orchestrators pass `none` and compress the closed bag after each reap instead.
+    bag_compression = (
+        LaunchConfiguration("bag_compression").perform(context).strip().lower()
+    )
+    if bag_compression not in ("file", "none"):
+        raise ValueError(
+            f"bag_compression must be 'file' or 'none', got {bag_compression!r}"
+        )
+
+    cmd = [
+        "ros2",
+        "bag",
+        "record",
+        "-o",
+        bag_path,
+        "-s",
+        "mcap",
+    ]
+    if bag_compression == "file":
+        cmd += [
+            "--compression-mode",
+            "file",
+            "--compression-format",
+            "zstd",
+        ]
     # Topic list matches what UG-anomaly_detection's downstream pipeline
     # expects. /bcu/rpm/fault is sim-only (fault injector diagnostic) so
     # it stays as a literal here rather than going through UUVTopics.
-    return [
-        ExecuteProcess(
-            cmd=[
-                "ros2",
-                "bag",
-                "record",
-                "-o",
-                bag_path,
-                "-s",
-                "mcap",
-                "--compression-mode",
-                "file",
-                "--compression-format",
-                "zstd",
-                "/imu/left",
-                "/external/pressure",
-                "/bcu/rpm",
-                "/bcu/flow_rate",
-                "/bcu/pressure",
-                "/bcu/rpm/fault",
-            ],
-            output="screen",
-        )
+    cmd += [
+        "/imu/left",
+        "/external/pressure",
+        "/bcu/rpm",
+        "/bcu/flow_rate",
+        "/bcu/pressure",
+        "/bcu/rpm/fault",
+        gt_odom_topic,
     ]
+    return [ExecuteProcess(cmd=cmd, output="screen")]
 
 
 def generate_launch_description():
@@ -144,8 +162,9 @@ def generate_launch_description():
         "record",
         default_value="false",
         description=(
-            "If true, record the six HAL-published topics to an MCAP rosbag "
-            "alongside the bridges."
+            "If true, record the six HAL-published topics plus the Gazebo "
+            "ground-truth odometry (/model/<model_name>/odometry) to an MCAP "
+            "rosbag alongside the bridges."
         ),
     )
     sampler_id_arg = DeclareLaunchArgument(
@@ -174,6 +193,17 @@ def generate_launch_description():
             "overrides the sampler_id/run_id synthesis above."
         ),
     )
+    bag_compression_arg = DeclareLaunchArgument(
+        "bag_compression",
+        default_value="file",
+        description=(
+            "Rosbag2 compression mode. 'file' (default) compresses each "
+            "MCAP at shutdown; 'none' disables in-recorder compression so "
+            "a SIGKILL during teardown can't strip metadata.yaml or leave "
+            "half-finalized files. Sweep runners should pass 'none' and "
+            "compress the closed bag after each reap."
+        ),
+    )
 
     return LaunchDescription(
         [
@@ -182,6 +212,7 @@ def generate_launch_description():
             sampler_id_arg,
             run_id_arg,
             bag_path_arg,
+            bag_compression_arg,
             OpaqueFunction(function=_wire_bridges),
             OpaqueFunction(function=_maybe_record),
         ]

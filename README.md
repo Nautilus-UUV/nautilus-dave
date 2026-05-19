@@ -127,7 +127,7 @@ ros2 launch nautilus_hal sawtooth_sim.launch.py \
 #### Mission Laptop
 
 ```bash
-mosquitto -c /home/girji/dave_ws/nautilus-command-bridge-frontend/mosquitto/mosquitto.conf -v
+mosquitto -c ./mosquitto/mosquitto.conf -v
 ```
 
 ```bash
