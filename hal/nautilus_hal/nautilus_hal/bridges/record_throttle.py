@@ -16,6 +16,8 @@ Parameters:
 
 from importlib import import_module
 
+from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
+
 from .bridge_base import SimBridgeNode, run_bridge
 
 
@@ -48,7 +50,15 @@ class RecordThrottle(SimBridgeNode):
         msg_type = _resolve_msg_type(msg_type_str)
         self._latest = None
 
-        self._sub = self.create_subscription(msg_type, input_topic, self._on_msg, 10)
+        # Subscribe BEST_EFFORT so we match both best-effort sensor publishers
+        # (e.g. /imu/left on SENSOR_STREAM) and reliable ones — DDS allows a
+        # best-effort request to bind to a reliable offer, but not the reverse.
+        sub_qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10,
+        )
+        self._sub = self.create_subscription(msg_type, input_topic, self._on_msg, sub_qos)
         self._pub = self.create_publisher(msg_type, output_topic, 10)
         self._timer = self.create_timer(1.0 / rate_hz, self._tick)
 
