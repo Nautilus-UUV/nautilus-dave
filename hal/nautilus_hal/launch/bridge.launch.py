@@ -109,6 +109,46 @@ def _maybe_record(context, *_args, **_kwargs):
     scenario = load_scenario(LaunchConfiguration("scenario").perform(context))
     gt_odom_topic = f"/model/{scenario.rig.sim.model_name}/odometry"
 
+    # Every recorded topic is funnelled through a record_throttle node so
+    # the bag has a single uniform sample rate, independent of the live
+    # publish rates.
+    record_rate_hz = 1.0
+    record_topics = [
+        ("/imu/left", "sensor_msgs/msg/Imu"),
+        ("/external/pressure", "std_msgs/msg/Int32"),
+        ("/bcu/rpm", "std_msgs/msg/Int16"),
+        ("/bcu/flow_rate", "std_msgs/msg/Float32"),
+        ("/bcu/pressure", "std_msgs/msg/Int32"),
+        ("/bcu/rpm/fault", "std_msgs/msg/Int32"),
+        (gt_odom_topic, "nav_msgs/msg/Odometry"),
+    ]
+
+    throttle_nodes = []
+    throttled_topic_names = []
+    for input_topic, msg_type in record_topics:
+        output_topic = f"{input_topic}/throttled"
+        throttled_topic_names.append(output_topic)
+        # ROS node names must be valid identifiers — turn slashes into
+        # underscores and strip the leading one so /bcu/rpm/fault becomes
+        # record_throttle_bcu_rpm_fault.
+        node_suffix = input_topic.strip("/").replace("/", "_")
+        throttle_nodes.append(
+            Node(
+                package="nautilus_hal",
+                executable="record_throttle",
+                name=f"record_throttle_{node_suffix}",
+                output="screen",
+                parameters=[
+                    {
+                        "input_topic": input_topic,
+                        "output_topic": output_topic,
+                        "rate_hz": record_rate_hz,
+                        "msg_type": msg_type,
+                    }
+                ],
+            )
+        )
+
     # Sweep orchestrators pass `none` and compress the closed bag after each reap instead.
     bag_compression = (
         LaunchConfiguration("bag_compression").perform(context).strip().lower()
@@ -134,19 +174,8 @@ def _maybe_record(context, *_args, **_kwargs):
             "--compression-format",
             "zstd",
         ]
-    # Topic list matches what UG-anomaly_detection's downstream pipeline
-    # expects. /bcu/rpm/fault is sim-only (fault injector diagnostic) so
-    # it stays as a literal here rather than going through UUVTopics.
-    cmd += [
-        "/imu/left",
-        "/external/pressure",
-        "/bcu/rpm",
-        "/bcu/flow_rate",
-        "/bcu/pressure",
-        "/bcu/rpm/fault",
-        gt_odom_topic,
-    ]
-    return [ExecuteProcess(cmd=cmd, output="screen")]
+    cmd += throttled_topic_names
+    return throttle_nodes + [ExecuteProcess(cmd=cmd, output="screen")]
 
 
 def generate_launch_description():
@@ -163,8 +192,12 @@ def generate_launch_description():
         default_value="false",
         description=(
             "If true, record the six HAL-published topics plus the Gazebo "
-            "ground-truth odometry (/model/<model_name>/odometry) to an MCAP "
-            "rosbag alongside the bridges."
+            "ground-truth odometry to an MCAP rosbag alongside the bridges. "
+            "Every recorded topic is throttled to 1 Hz via a sibling "
+            "<topic>/throttled stream so the bag has a single uniform "
+            "sample rate; the live streams stay at their original rates "
+            "(IMU 50 Hz, GT odom 100 Hz, BCU/external 10 Hz) for the EKF, "
+            "controllers, and GT-comparison tests."
         ),
     )
     sampler_id_arg = DeclareLaunchArgument(
