@@ -131,7 +131,11 @@ ENV_FILE="$ENV_DIR/env"
 mkdir -p "$ENV_DIR"
 
 cat > "$ENV_FILE" <<'EOF'
-source /opt/ros/jazzy/setup.bash
+if [ -n "$ZSH_VERSION" ]; then
+    source /opt/ros/jazzy/setup.zsh
+else
+    source /opt/ros/jazzy/setup.bash
+fi
 export PATH=/opt/ardusub_ws/ardupilot/Tools/autotest:$PATH
 export PATH=/opt/ardusub_ws/ardupilot/build/sitl/bin:$PATH
 export GEOGRAPHICLIB_GEOID_PATH=/usr/share/GeographicLib/geoids
