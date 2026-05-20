@@ -103,24 +103,38 @@ def _maybe_record(context, *_args, **_kwargs):
         bag_path = "/".join(parts)
 
     # Ground-truth odometry comes straight off Gazebo via the parameter
-    # bridge in dave_robot_models
+    # bridge in dave_robot_models; the /sim/{model}/acu/*_position_* pair
+    # is published by acu_sim_bridge as the joint-state GT counterpart.
     from py_pkg.scenarios.loader import load_scenario
 
     scenario = load_scenario(LaunchConfiguration("scenario").perform(context))
-    gt_odom_topic = f"/model/{scenario.rig.sim.model_name}/odometry"
+    model_name = scenario.rig.sim.model_name
+    gt_odom_topic = f"/model/{model_name}/odometry"
+    gt_acu_pitch_topic = f"/sim/{model_name}/acu/pitch_position_m"
+    gt_acu_roll_topic = f"/sim/{model_name}/acu/roll_position_rad"
 
     # Every recorded topic is funnelled through a record_throttle node so
     # the bag has a single uniform sample rate, independent of the live
-    # publish rates.
+    # publish rates. Topics published only by the control stack
+    # (/acu/{pitch,roll}, /imu/filtered/left, /position/{target,estimation})
+    # silently produce empty streams when bridges run standalone; that's the
+    # intended soft-failure mode.
     record_rate_hz = 1.0
     record_topics = [
         ("/imu/left", "sensor_msgs/msg/Imu"),
+        ("/imu/filtered/left", "sensor_msgs/msg/Imu"),
         ("/external/pressure", "std_msgs/msg/Int32"),
         ("/bcu/rpm", "std_msgs/msg/Int16"),
         ("/bcu/flow_rate", "std_msgs/msg/Float32"),
         ("/bcu/pressure", "std_msgs/msg/Int32"),
         ("/bcu/rpm/fault", "std_msgs/msg/Int32"),
+        ("/acu/pitch", "std_msgs/msg/Int16"),
+        ("/acu/roll", "std_msgs/msg/Int16"),
+        ("/position/target", "geometry_msgs/msg/Pose"),
+        ("/position/estimation", "geometry_msgs/msg/Pose"),
         (gt_odom_topic, "nav_msgs/msg/Odometry"),
+        (gt_acu_pitch_topic, "std_msgs/msg/Float64"),
+        (gt_acu_roll_topic, "std_msgs/msg/Float64"),
     ]
 
     throttle_nodes = []
@@ -191,13 +205,16 @@ def generate_launch_description():
         "record",
         default_value="false",
         description=(
-            "If true, record the six HAL-published topics plus the Gazebo "
-            "ground-truth odometry to an MCAP rosbag alongside the bridges. "
-            "Every recorded topic is throttled to 1 Hz via a sibling "
-            "<topic>/throttled stream so the bag has a single uniform "
-            "sample rate; the live streams stay at their original rates "
-            "(IMU 50 Hz, GT odom 100 Hz, BCU/external 10 Hz) for the EKF, "
-            "controllers, and GT-comparison tests."
+            "If true, record the HAL-published topics (BCU/IMU/external "
+            "pressure plus ACU commands and joint-state GT) and the "
+            "control-stack outputs (filtered IMU, position target / "
+            "estimation) plus the Gazebo ground-truth odometry to an MCAP "
+            "rosbag alongside the bridges. Every recorded topic is "
+            "throttled to 1 Hz via a sibling <topic>/throttled stream so "
+            "the bag has a single uniform sample rate; the live streams "
+            "stay at their original rates (IMU 50 Hz, GT odom 100 Hz, "
+            "BCU/external 10 Hz) for the EKF, controllers, and "
+            "GT-comparison tests."
         ),
     )
     sampler_id_arg = DeclareLaunchArgument(
