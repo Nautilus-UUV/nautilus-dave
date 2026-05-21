@@ -27,8 +27,10 @@ from launch.actions import (
     IncludeLaunchDescription,
     LogInfo,
     OpaqueFunction,
+    RegisterEventHandler,
     TimerAction,
 )
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
@@ -76,7 +78,12 @@ def _build_robot_launch(context, *_args, **_kwargs):
 
 
 def _maybe_autostart(context, *_args, **_kwargs):
-    """Surface autostart: target is fixed at gauge 0; autostart from launch arg."""
+    """Surface autostart: target is fixed at gauge 0; autostart from launch arg.
+
+    The `start` publish chains off the MissionCommand publisher's exit
+    (OnProcessExit) so /path always reaches pathfinding_node before
+    /command — see Issue #43.
+    """
     autostart = (
         LaunchConfiguration("mission_autostart").perform(context).lower() == "true"
     )
@@ -89,43 +96,42 @@ def _maybe_autostart(context, *_args, **_kwargs):
         "--qos-durability",
         "transient_local",
     ]
+    mission_pub = ExecuteProcess(
+        cmd=[
+            "ros2",
+            "topic",
+            "pub",
+            "--once",
+            *qos_args,
+            "/path",
+            "nautilus_msgs/msg/MissionCommand",
+            f"{{mission_id: {_MISSION_ID_SURFACE}, "
+            "target_pressure_pa: 0.0, angle_rad: 0.0, "
+            "n_resurfaces: 0}",
+        ],
+        output="screen",
+    )
+    start_pub = ExecuteProcess(
+        cmd=[
+            "ros2",
+            "topic",
+            "pub",
+            "--once",
+            *qos_args,
+            "/command",
+            "std_msgs/msg/String",
+            "{data: start}",
+        ],
+        output="screen",
+    )
     return [
         TimerAction(
             period=8.0,
             actions=[
-                ExecuteProcess(
-                    cmd=[
-                        "ros2",
-                        "topic",
-                        "pub",
-                        "--once",
-                        *qos_args,
-                        "/path",
-                        "nautilus_msgs/msg/MissionCommand",
-                        f"{{mission_id: {_MISSION_ID_SURFACE}, "
-                        "target_pressure_pa: 0.0, angle_rad: 0.0, "
-                        "n_resurfaces: 0}",
-                    ],
-                    output="screen",
-                )
-            ],
-        ),
-        TimerAction(
-            period=10.0,
-            actions=[
-                ExecuteProcess(
-                    cmd=[
-                        "ros2",
-                        "topic",
-                        "pub",
-                        "--once",
-                        *qos_args,
-                        "/command",
-                        "std_msgs/msg/String",
-                        "{data: start}",
-                    ],
-                    output="screen",
-                )
+                mission_pub,
+                RegisterEventHandler(
+                    OnProcessExit(target_action=mission_pub, on_exit=[start_pub])
+                ),
             ],
         ),
     ]

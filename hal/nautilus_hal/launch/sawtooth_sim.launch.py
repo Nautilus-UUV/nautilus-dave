@@ -31,8 +31,10 @@ from launch.actions import (
     IncludeLaunchDescription,
     LogInfo,
     OpaqueFunction,
+    RegisterEventHandler,
     TimerAction,
 )
+from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
@@ -81,7 +83,12 @@ def _build_robot_launch(context, *_args, **_kwargs):
 
 
 def _maybe_autostart(context, *_args, **_kwargs):
-    """Emit MissionCommand + start publishes if mission_autostart is true."""
+    """Emit MissionCommand + start publishes if mission_autostart is true.
+
+    The `start` publish chains off the MissionCommand publisher's exit
+    (OnProcessExit) so /path always reaches pathfinding_node before
+    /command — see Issue #43.
+    """
     autostart = LaunchConfiguration("mission_autostart").perform(context).lower() == "true"
     if not autostart:
         return []
@@ -95,46 +102,45 @@ def _maybe_autostart(context, *_args, **_kwargs):
         "--qos-durability",
         "transient_local",
     ]
+    mission_pub = ExecuteProcess(
+        cmd=[
+            "ros2",
+            "topic",
+            "pub",
+            "--once",
+            *qos_args,
+            "/path",
+            "nautilus_msgs/msg/MissionCommand",
+            (
+                f"{{mission_id: {_MISSION_ID_SAWTOOTH}, "
+                f"target_pressure_pa: {target_pressure_pa}, "
+                f"angle_rad: {angle_rad}, "
+                f"n_resurfaces: {n_resurfaces}}}"
+            ),
+        ],
+        output="screen",
+    )
+    start_pub = ExecuteProcess(
+        cmd=[
+            "ros2",
+            "topic",
+            "pub",
+            "--once",
+            *qos_args,
+            "/command",
+            "std_msgs/msg/String",
+            "{data: start}",
+        ],
+        output="screen",
+    )
     return [
         TimerAction(
             period=8.0,
             actions=[
-                ExecuteProcess(
-                    cmd=[
-                        "ros2",
-                        "topic",
-                        "pub",
-                        "--once",
-                        *qos_args,
-                        "/path",
-                        "nautilus_msgs/msg/MissionCommand",
-                        (
-                            f"{{mission_id: {_MISSION_ID_SAWTOOTH}, "
-                            f"target_pressure_pa: {target_pressure_pa}, "
-                            f"angle_rad: {angle_rad}, "
-                            f"n_resurfaces: {n_resurfaces}}}"
-                        ),
-                    ],
-                    output="screen",
-                )
-            ],
-        ),
-        TimerAction(
-            period=10.0,
-            actions=[
-                ExecuteProcess(
-                    cmd=[
-                        "ros2",
-                        "topic",
-                        "pub",
-                        "--once",
-                        *qos_args,
-                        "/command",
-                        "std_msgs/msg/String",
-                        "{data: start}",
-                    ],
-                    output="screen",
-                )
+                mission_pub,
+                RegisterEventHandler(
+                    OnProcessExit(target_action=mission_pub, on_exit=[start_pub])
+                ),
             ],
         ),
     ]
