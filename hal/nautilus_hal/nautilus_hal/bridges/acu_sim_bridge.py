@@ -11,6 +11,7 @@ Throttle frequency to 10Hz between ROS and Gazebo."""
 import math
 
 from py_pkg.robot_specs import ACU_ROLL_CDEG_PER_DEG
+from py_pkg.scenarios.spec.rig import SimSpec
 from py_pkg.uuv_ros_core import (
     UUVTopics,
     create_subscription_for_topic,
@@ -18,8 +19,8 @@ from py_pkg.uuv_ros_core import (
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 
+from ..constants import Conversions, SimDebugTopics, SimTopics
 from .bridge_base import SimBridgeNode, run_bridge
-from .constants import Conversions, SimDebugTopics, SimTopics
 
 
 class ACUSimBridge(SimBridgeNode):
@@ -27,9 +28,14 @@ class ACUSimBridge(SimBridgeNode):
         super().__init__("nautilus_acu_bridge")
 
     def setup_bridges(self):
-        # world_name is only needed by this bridge (joint_state path).
-        world_name = self.world_name
-        model_name = self.model_name
+        sim_def = SimSpec()
+        self.declare_parameter("model_name", sim_def.model_name)
+        # ACU is the one bridge that needs world_name (for the
+        # /world/<world>/model/<model>/joint_state subscription).
+        self.declare_parameter("world_name", sim_def.world_name)
+        model_name = self.get_parameter("model_name").value
+        world_name = self.get_parameter("world_name").value
+        self.model_name = model_name
 
         # ====================
         # ACU roll control

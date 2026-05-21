@@ -14,14 +14,10 @@ setup(
         ("share/" + package_name, ["package.xml"]),
         (
             os.path.join("share", package_name, "launch"),
-            glob(os.path.join("launch", "*launch.[pxy][yma]*")),
-        ),
-        (
-            os.path.join("share", package_name, "config"),
-            glob(os.path.join("config", "*.yaml")),
+            glob(os.path.join("launch", "*.launch.py")),
         ),
     ],
-    install_requires=["setuptools", "py_pkg"],
+    install_requires=["setuptools"],
     zip_safe=True,
     maintainer="Girjoaba",
     maintainer_email="andrei.girjoaba@aris-space.ch",
@@ -30,10 +26,12 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "bcu_sim_bridge = nautilus_hal.bcu_sim_bridge:main",
-            "external_sensor_sim_bridge = nautilus_hal.external_sensor_sim_bridge:main",
-            "imu_sim_bridge = nautilus_hal.imu_sim_bridge:main",
-            "acu_sim_bridge = nautilus_hal.acu_sim_bridge:main",
+            "bcu_sim_bridge = nautilus_hal.bridges.bcu_sim_bridge:main",
+            "external_sensor_sim_bridge = nautilus_hal.bridges.external_sensor_sim_bridge:main",
+            "imu_sim_bridge = nautilus_hal.bridges.imu_sim_bridge:main",
+            "acu_sim_bridge = nautilus_hal.bridges.acu_sim_bridge:main",
+            "gt_pose_bridge = nautilus_hal.bridges.gt_pose_bridge:main",
+            "record_throttle = nautilus_hal.bridges.record_throttle:main",
         ],
     },
 )

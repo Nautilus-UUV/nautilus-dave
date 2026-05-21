@@ -1,44 +1,269 @@
 import os
+from datetime import datetime
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
+def _sim_data_root():
+    # Inside our container the workspace mounts at /ros2_ws, so absolute
+    # paths are sane; on the host we leave it relative so bags land next
+    # to whatever cwd the operator launched from (usually the workspace
+    # root).
+    if (
+        os.path.exists("/.dockerenv")
+        or "APPTAINER_CONTAINER" in os.environ
+        or "SINGULARITY_CONTAINER" in os.environ
+    ):
+        return "/ros2_ws/sim_data"
+    return "./sim_data"
+
+
+def _default_scenario_path() -> str:
+    return os.path.join(
+        get_package_share_directory("py_pkg"),
+        "scenarios",
+        "library",
+        "nominal.yaml",
+    )
+
+
+def _wire_bridges(context, *_args, **_kwargs):
+    # Loaded inside OpaqueFunction so LaunchConfiguration is resolvable.
+    from py_pkg.scenarios.compile import (
+        params_for_acu_bridge,
+        params_for_bcu_bridge,
+        params_for_external_sensor_bridge,
+        params_for_imu_bridge,
+    )
+    from py_pkg.scenarios.loader import load_scenario
+
+    scenario = load_scenario(LaunchConfiguration("scenario").perform(context))
+    rig = scenario.rig
+    parent_seed = scenario.seed
+
+    return [
+        Node(
+            package="nautilus_hal",
+            executable="bcu_sim_bridge",
+            name="nautilus_bcu_bridge",
+            output="screen",
+            parameters=[params_for_bcu_bridge(rig, parent_seed)],
+        ),
+        Node(
+            package="nautilus_hal",
+            executable="external_sensor_sim_bridge",
+            name="nautilus_external_sensor_bridge",
+            output="screen",
+            parameters=[params_for_external_sensor_bridge(rig)],
+        ),
+        Node(
+            package="nautilus_hal",
+            executable="imu_sim_bridge",
+            name="nautilus_imu_bridge",
+            output="screen",
+            parameters=[params_for_imu_bridge(rig)],
+        ),
+        Node(
+            package="nautilus_hal",
+            executable="acu_sim_bridge",
+            name="nautilus_acu_bridge",
+            output="screen",
+            parameters=[params_for_acu_bridge(rig)],
+        ),
+    ]
+
+
+def _maybe_record(context, *_args, **_kwargs):
+    """Resolve the bag output path and emit a rosbag ExecuteProcess if record:=true.
+
+    The synthesized default is `{sim_data_root}/[{sampler_id}/]{run_id}_{ts}/raw`.
+    An empty sampler_id (the default) collapses the middle segment so the
+    historical layout `{sim_data_root}/{run_id}_{ts}/raw` is preserved
+    bit-for-bit. An explicit `bag_path:=...` short-circuits the synthesis.
+    """
+    if LaunchConfiguration("record").perform(context).lower() != "true":
+        return []
+
+    explicit = LaunchConfiguration("bag_path").perform(context).strip()
+    if explicit:
+        bag_path = explicit
+    else:
+        timestamp = datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
+        sampler_id = LaunchConfiguration("sampler_id").perform(context).strip()
+        run_id = LaunchConfiguration("run_id").perform(context).strip()
+        parts = [_sim_data_root()]
+        if sampler_id:
+            parts.append(sampler_id)
+        parts.append(f"{run_id}_{timestamp}")
+        parts.append("raw")
+        bag_path = "/".join(parts)
+
+    # Ground-truth odometry comes straight off Gazebo via the parameter
+    # bridge in dave_robot_models; the /sim/{model}/acu/*_position_* pair
+    # is published by acu_sim_bridge as the joint-state GT counterpart.
+    from py_pkg.scenarios.loader import load_scenario
+
+    scenario = load_scenario(LaunchConfiguration("scenario").perform(context))
+    model_name = scenario.rig.sim.model_name
+    gt_odom_topic = f"/model/{model_name}/odometry"
+    gt_acu_pitch_topic = f"/sim/{model_name}/acu/pitch_position_m"
+    gt_acu_roll_topic = f"/sim/{model_name}/acu/roll_position_rad"
+
+    # Every recorded topic is funnelled through a record_throttle node so
+    # the bag has a single uniform sample rate, independent of the live
+    # publish rates. Topics published only by the control stack
+    # (/acu/{pitch,roll}, /imu/filtered/left, /position/{target,estimation})
+    # silently produce empty streams when bridges run standalone; that's the
+    # intended soft-failure mode.
+    record_rate_hz = 1.0
+    record_topics = [
+        ("/imu/left", "sensor_msgs/msg/Imu"),
+        ("/imu/filtered/left", "sensor_msgs/msg/Imu"),
+        ("/external/pressure", "std_msgs/msg/Int32"),
+        ("/bcu/rpm", "std_msgs/msg/Int16"),
+        ("/bcu/flow_rate", "std_msgs/msg/Float32"),
+        ("/bcu/pressure", "std_msgs/msg/Int32"),
+        ("/bcu/rpm/fault", "std_msgs/msg/Int32"),
+        ("/acu/pitch", "std_msgs/msg/Int16"),
+        ("/acu/roll", "std_msgs/msg/Int16"),
+        ("/position/target", "geometry_msgs/msg/Pose"),
+        ("/position/estimation", "geometry_msgs/msg/Pose"),
+        (gt_odom_topic, "nav_msgs/msg/Odometry"),
+        (gt_acu_pitch_topic, "std_msgs/msg/Float64"),
+        (gt_acu_roll_topic, "std_msgs/msg/Float64"),
+    ]
+
+    throttle_nodes = []
+    throttled_topic_names = []
+    for input_topic, msg_type in record_topics:
+        output_topic = f"{input_topic}/throttled"
+        throttled_topic_names.append(output_topic)
+        # ROS node names must be valid identifiers — turn slashes into
+        # underscores and strip the leading one so /bcu/rpm/fault becomes
+        # record_throttle_bcu_rpm_fault.
+        node_suffix = input_topic.strip("/").replace("/", "_")
+        throttle_nodes.append(
+            Node(
+                package="nautilus_hal",
+                executable="record_throttle",
+                name=f"record_throttle_{node_suffix}",
+                output="screen",
+                parameters=[
+                    {
+                        "input_topic": input_topic,
+                        "output_topic": output_topic,
+                        "rate_hz": record_rate_hz,
+                        "msg_type": msg_type,
+                    }
+                ],
+            )
+        )
+
+    # Sweep orchestrators pass `none` and compress the closed bag after each reap instead.
+    bag_compression = (
+        LaunchConfiguration("bag_compression").perform(context).strip().lower()
+    )
+    if bag_compression not in ("file", "none"):
+        raise ValueError(
+            f"bag_compression must be 'file' or 'none', got {bag_compression!r}"
+        )
+
+    cmd = [
+        "ros2",
+        "bag",
+        "record",
+        "-o",
+        bag_path,
+        "-s",
+        "mcap",
+    ]
+    if bag_compression == "file":
+        cmd += [
+            "--compression-mode",
+            "file",
+            "--compression-format",
+            "zstd",
+        ]
+    cmd += throttled_topic_names
+    return throttle_nodes + [ExecuteProcess(cmd=cmd, output="screen")]
+
+
 def generate_launch_description():
-    config = os.path.join(
-        get_package_share_directory("nautilus_hal"), "config", "nautilus_params.yaml"
+    scenario_arg = DeclareLaunchArgument(
+        "scenario",
+        default_value=_default_scenario_path(),
+        description=(
+            "Path to a scenario YAML. Loaded via py_pkg.scenarios.load_scenario "
+            "to parameterize every bridge; defaults to the installed nominal (fault-injection off)."
+        ),
+    )
+    record_arg = DeclareLaunchArgument(
+        "record",
+        default_value="false",
+        description=(
+            "If true, record the HAL-published topics (BCU/IMU/external "
+            "pressure plus ACU commands and joint-state GT) and the "
+            "control-stack outputs (filtered IMU, position target / "
+            "estimation) plus the Gazebo ground-truth odometry to an MCAP "
+            "rosbag alongside the bridges. Every recorded topic is "
+            "throttled to 1 Hz via a sibling <topic>/throttled stream so "
+            "the bag has a single uniform sample rate; the live streams "
+            "stay at their original rates (IMU 50 Hz, GT odom 100 Hz, "
+            "BCU/external 10 Hz) for the EKF, controllers, and "
+            "GT-comparison tests."
+        ),
+    )
+    sampler_id_arg = DeclareLaunchArgument(
+        "sampler_id",
+        default_value="",
+        description=(
+            "Optional parent folder for grouping bags from one sampler "
+            "invocation: ./sim_data/{sampler_id}/{run_id}_{timestamp}/raw. "
+            "Empty (the default) drops the middle segment, preserving the "
+            "historical ./sim_data/{run_id}_{timestamp}/raw layout."
+        ),
+    )
+    run_id_arg = DeclareLaunchArgument(
+        "run_id",
+        default_value="dive",
+        description=(
+            "Run identifier baked into the bag output dir as "
+            "./sim_data/[{sampler_id}/]{run_id}_{timestamp}/raw."
+        ),
+    )
+    bag_path_arg = DeclareLaunchArgument(
+        "bag_path",
+        default_value="",
+        description=(
+            "Full output directory for the rosbag; when non-empty this "
+            "overrides the sampler_id/run_id synthesis above."
+        ),
+    )
+    bag_compression_arg = DeclareLaunchArgument(
+        "bag_compression",
+        default_value="file",
+        description=(
+            "Rosbag2 compression mode. 'file' (default) compresses each "
+            "MCAP at shutdown; 'none' disables in-recorder compression so "
+            "a SIGKILL during teardown can't strip metadata.yaml or leave "
+            "half-finalized files. Sweep runners should pass 'none' and "
+            "compress the closed bag after each reap."
+        ),
     )
 
     return LaunchDescription(
         [
-            Node(
-                package="nautilus_hal",
-                executable="bcu_sim_bridge",
-                name="nautilus_bcu_bridge",
-                output="screen",
-                parameters=[config],
-            ),
-            Node(
-                package="nautilus_hal",
-                executable="external_sensor_sim_bridge",
-                name="nautilus_external_sensor_bridge",
-                output="screen",
-                parameters=[config],
-            ),
-            Node(
-                package="nautilus_hal",
-                executable="imu_sim_bridge",
-                name="nautilus_imu_bridge",
-                output="screen",
-                parameters=[config],
-            ),
-            Node(
-                package="nautilus_hal",
-                executable="acu_sim_bridge",
-                name="nautilus_acu_bridge",
-                output="screen",
-                parameters=[config],
-            ),
+            scenario_arg,
+            record_arg,
+            sampler_id_arg,
+            run_id_arg,
+            bag_path_arg,
+            bag_compression_arg,
+            OpaqueFunction(function=_wire_bridges),
+            OpaqueFunction(function=_maybe_record),
         ]
     )

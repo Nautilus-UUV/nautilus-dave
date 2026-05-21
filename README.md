@@ -92,10 +92,57 @@ ros2 launch nautilus_hal sawtooth_sim.launch.py \
     mission_autostart:=true \
     target_pressure_pa:=147150.0 \
     angle_rad:=0.6109 \
-    n_resurfaces:=1
+    n_resurfaces:=3
 ```
 
 You should see the glider going in a sawtooth motion. You can configure the depth and the number of resurfaces. See the the launch files in the `dave_ws/src/dave/hal/nautilus_hal/launch` for a complete list.
+
+### Data Collection
+
+```bash
+ros2 launch nautilus_hal sawtooth_sim.launch.py \
+    headless:=true \
+    mission_autostart:=true \
+    target_pressure_pa:=147150.0 \
+    angle_rad:=0.6109 \
+    n_resurfaces:=3 \
+    record:=true
+```
+
+**args:**
+- `record:=true` to enable databag generation
+- `run_id:={ID}` to give a predefined run_id that is concatenated together with the timestamp
+- `bag_path:={PATH}` if you want to override the default data collection path
+- `scenario:={PATH}` selects the scenario YAML driving gains, plant, bridge publish rates, and fault injection. Defaults to the installed `library/nominal.yaml` (perturbation-free, fault-injection off). To turn BCU fault injection back on (MTTF ~60 s), pick `baseline.yaml`:
+
+  ```bash
+  scenario:=$(ros2 pkg prefix py_pkg)/share/py_pkg/scenarios/library/baseline.yaml
+  ```
+
+  Same flag works for `trim_sim.launch.py`, `sawtooth_sim.launch.py`, `surface_sim.launch.py`, `bridge.launch.py`, and `control_stack.launch.py`.
+
+
+### UI Connection
+
+#### Mission Laptop
+
+```bash
+mosquitto -c ./mosquitto/mosquitto.conf -v
+```
+
+```bash
+npm run dev
+```
+
+#### Pi
+
+```bash
+ros2 run py_pkg mqtt_bridge_node
+```
+
+```bash
+ros2 launch nautilus_hal trim_sim.launch.py headless:=false mission_autostart:=false
+```
 
 ## Branch Structure
 
@@ -161,3 +208,4 @@ source install/setup.bash
 # Test your changes (launch files, simulations, etc.)
 ros2 launch <your_test_commands>
 ```
+

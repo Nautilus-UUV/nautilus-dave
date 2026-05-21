@@ -1,9 +1,10 @@
+from py_pkg.scenarios.spec.rig import ExternalSensorBridgeSpec, SimSpec
 from py_pkg.uuv_ros_core import UUVTopics, create_publisher_for_topic
 from sensor_msgs.msg import FluidPressure
 from std_msgs.msg import Int32
 
+from ..constants import SimTopics, sea_pressure_pa
 from .bridge_base import SimBridgeNode, run_bridge
-from .constants import SimTopics, sea_pressure_pa
 
 
 class ExternalSensorSimBridge(SimBridgeNode):
@@ -11,9 +12,14 @@ class ExternalSensorSimBridge(SimBridgeNode):
         super().__init__("nautilus_external_sensor_bridge")
 
     def setup_bridges(self):
+        self.declare_parameter("model_name", SimSpec().model_name)
+        self.declare_parameter(
+            "publish_rate_hz", ExternalSensorBridgeSpec().publish_rate_hz
+        )
+        self.model_name = self.get_parameter("model_name").value
         self.latest_pressure = 0
-        # 10 Hz frequency for publishing external sensors
-        self.pub_timer = self.create_timer(0.1, self.publish_at_rate)
+        publish_rate_hz = self.get_parameter("publish_rate_hz").value
+        self.pub_timer = self.create_timer(1.0 / publish_rate_hz, self.publish_at_rate)
 
         self.pressure_pub = create_publisher_for_topic(
             self, UUVTopics.EXTERNAL_PRESSURE
