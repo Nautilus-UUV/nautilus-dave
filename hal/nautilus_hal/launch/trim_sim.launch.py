@@ -191,7 +191,10 @@ def generate_launch_description():
                 )
             ]
         ),
-        launch_arguments={"scenario": scenario}.items(),
+        launch_arguments={
+            "scenario": scenario,
+            "ekf_publish_enabled": LaunchConfiguration("ekf_publish_enabled"),
+        }.items(),
     )
 
     return LaunchDescription(
@@ -244,6 +247,19 @@ def generate_launch_description():
                 description=(
                     "Informational: TRIM_AND_NEUTRAL never self-terminates, so the "
                     "launch holds either way. Documents intent when running from CLI."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "ekf_publish_enabled",
+                default_value="false",
+                description=(
+                    "Forwarded to control_stack.launch.py. Defaulted off "
+                    "while the EKF is being tuned: /position/estimation "
+                    "stays silent, the depth + ACU-pitch loops keep "
+                    "running (they don't read it), and the ACU-roll loop "
+                    "sits at its init value (0 deg) and commands ~0 "
+                    "instead of railing on bad EKF output. Flip true once "
+                    "the EKF is trusted."
                 ),
             ),
             DeclareLaunchArgument(
