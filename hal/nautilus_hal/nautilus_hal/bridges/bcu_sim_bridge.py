@@ -60,9 +60,7 @@ class BCUSimBridge(SimBridgeNode):
         self.volume_per_rev_m3 = self.get_parameter("volume_per_rev_m3").value
         self.bladder_min_m3 = self.get_parameter("bladder_min_m3").value
         self.bladder_max_m3 = self.get_parameter("bladder_max_m3").value
-        self.tank_pressure_empty_pa = self.get_parameter(
-            "tank_pressure_empty_pa"
-        ).value
+        self.tank_pressure_empty_pa = self.get_parameter("tank_pressure_empty_pa").value
         self.tank_pressure_full_pa = self.get_parameter("tank_pressure_full_pa").value
         self.tank_pressure_vacuum_offset_pa = self.get_parameter(
             "tank_pressure_vacuum_offset_pa"
@@ -173,13 +171,17 @@ class BCUSimBridge(SimBridgeNode):
         self.latest_volume_ml = int(msg.data * Conversions.M3_TO_ML)
 
     def tank_pressure_pa(self) -> int:
-        # Map bladder fill (over the operating range) onto the tank sensor's
-        # gauge reading. Dive tests: ~0.7-1.5 barg end to end. Pure fill —
-        # depth does not enter. Endpoints and the vacuum offset are ROS params
-        # so the curve is tunable per scenario; swap the endpoints to invert
-        # the fill->pressure direction.
+        # Synthesize the internal tank sensor from the bladder fill. The bladder
+        # is fed from the tank: oil in the external bladder is oil OUT of the
+        # tank. So a full bladder (rising) means a drained tank reading the low
+        # endpoint, and an empty bladder (sinking) means a tank full of oil
+        # reading the high endpoint -- tank pressure runs INVERSE to bladder
+        # fill. Dive tests: ~0.7-1.5 barg end to end. Endpoints and the vacuum
+        # offset are ROS params so the curve is tunable per scenario.
         span = self.bladder_max_m3 - self.bladder_min_m3
-        frac = (self.latest_volume_m3 - self.bladder_min_m3) / span if span > 0 else 0.0
+        # Tank-fill fraction = how much oil is left in the tank = inverse of
+        # bladder fill.
+        frac = (self.bladder_max_m3 - self.latest_volume_m3) / span if span > 0 else 0.0
         frac = max(0.0, min(1.0, frac))
         p_gauge = self.tank_pressure_empty_pa + frac * (
             self.tank_pressure_full_pa - self.tank_pressure_empty_pa
