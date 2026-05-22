@@ -11,10 +11,9 @@ from py_pkg.uuv_ros_core import (
     create_publisher_for_topic,
     create_subscription_for_topic,
 )
-from sensor_msgs.msg import FluidPressure
 from std_msgs.msg import Float32, Float64, Int32
 
-from ..constants import Conversions, SimTopics, sea_pressure_pa
+from ..constants import Conversions, SimTopics
 from ..injectors.fault_injection import BCUFaultInjector
 from .bridge_base import SimBridgeNode, run_bridge
 
@@ -39,6 +38,13 @@ class BCUSimBridge(SimBridgeNode):
         self.declare_parameter("bladder_min_m3", plant_def.bladder_min_m3)
         self.declare_parameter("bladder_max_m3", plant_def.bladder_max_m3)
         self.declare_parameter(
+            "tank_pressure_empty_pa", plant_def.tank_pressure_empty_pa
+        )
+        self.declare_parameter("tank_pressure_full_pa", plant_def.tank_pressure_full_pa)
+        self.declare_parameter(
+            "tank_pressure_vacuum_offset_pa", plant_def.tank_pressure_vacuum_offset_pa
+        )
+        self.declare_parameter(
             "fault_probability_per_sec", fault_def.probability_per_sec
         )
         self.declare_parameter("fault_duration_sec", fault_def.duration_sec)
@@ -54,6 +60,14 @@ class BCUSimBridge(SimBridgeNode):
         self.volume_per_rev_m3 = self.get_parameter("volume_per_rev_m3").value
         self.bladder_min_m3 = self.get_parameter("bladder_min_m3").value
         self.bladder_max_m3 = self.get_parameter("bladder_max_m3").value
+        self.tank_pressure_empty_pa = self.get_parameter("tank_pressure_empty_pa").value
+        self.tank_pressure_full_pa = self.get_parameter("tank_pressure_full_pa").value
+        self.tank_pressure_vacuum_offset_pa = self.get_parameter(
+            "tank_pressure_vacuum_offset_pa"
+        ).value
+        # Live bladder fill (m3), refreshed from Gazebo. Until the first echo
+        # arrives we report the empty endpoint by sitting at the operating min.
+        self.latest_volume_m3 = self.bladder_min_m3
 
         # Seeded from Gazebo's first BUOYANCY_VOLUME_STATE callback (see
         # sim_bcu_volume_callback). Until then we don't push a volume back
@@ -88,14 +102,12 @@ class BCUSimBridge(SimBridgeNode):
         # ==============
         # BCU pressure / volume telemetry
         # ==============
-        # Gazebo's buoyancy plugin only exposes bladder *volume*, not pressure.
-        # On real hardware the BCU pressure transducer reads bladder pressure,
-        # which for a flexible membrane in contact with seawater equals
-        # ambient sea pressure to first order. So we source pressure from the
-        # same sea-pressure plugin external_sensor_sim_bridge uses, and expose
-        # bladder volume on its own topic.
+        # Gazebo's buoyancy plugin only exposes bladder *volume*, so the tank
+        # pressure sensor is synthesized from the fill state: the dive tests'
+        # 0.7-1.5 barg gauge swing, mapped linearly across the bladder
+        # operating range (see tank_pressure_pa). Pure fill — depth never
+        # enters, so this bridge no longer subscribes to sea pressure.
         self.latest_volume_ml = 0  # bladder volume (mL), echoed from Gazebo
-        self.latest_pressure_pa = 0  # bladder pressure (Pa), from sea pressure
         publish_rate_hz = self.get_parameter("publish_rate_hz").value
         self.pub_timer = self.create_timer(1.0 / publish_rate_hz, self.publish_at_rate)
         self.bcu_pressure_pub = create_publisher_for_topic(self, UUVTopics.BCU_PRESSURE)
@@ -104,12 +116,6 @@ class BCUSimBridge(SimBridgeNode):
             Float64,
             SimTopics.BUOYANCY_VOLUME_STATE.format(model_name=self.model_name),
             self.sim_bcu_volume_callback,
-            10,
-        )
-        self.sim_pressure_sub = self.create_subscription(
-            FluidPressure,
-            SimTopics.SEA_PRESSURE.format(model_name=self.model_name),
-            self.sim_sea_pressure_callback,
             10,
         )
 
@@ -160,14 +166,30 @@ class BCUSimBridge(SimBridgeNode):
             self.current_volume = float(msg.data)
             self.last_time = self.get_clock().now()
 
-        # Volume (m3) to milliliters (mL) as integer
+        # Volume (m3) drives the tank-pressure map; mL is the telemetry unit.
+        self.latest_volume_m3 = float(msg.data)
         self.latest_volume_ml = int(msg.data * Conversions.M3_TO_ML)
 
-    def sim_sea_pressure_callback(self, msg):
-        self.latest_pressure_pa = sea_pressure_pa(msg.fluid_pressure)
+    def tank_pressure_pa(self) -> int:
+        # Synthesize the internal tank sensor from the bladder fill. The bladder
+        # is fed from the tank: oil in the external bladder is oil OUT of the
+        # tank. So a full bladder (rising) means a drained tank reading the low
+        # endpoint, and an empty bladder (sinking) means a tank full of oil
+        # reading the high endpoint -- tank pressure runs INVERSE to bladder
+        # fill. Dive tests: ~0.7-1.5 barg end to end. Endpoints and the vacuum
+        # offset are ROS params so the curve is tunable per scenario.
+        span = self.bladder_max_m3 - self.bladder_min_m3
+        # Tank-fill fraction = how much oil is left in the tank = inverse of
+        # bladder fill.
+        frac = (self.bladder_max_m3 - self.latest_volume_m3) / span if span > 0 else 0.0
+        frac = max(0.0, min(1.0, frac))
+        p_gauge = self.tank_pressure_empty_pa + frac * (
+            self.tank_pressure_full_pa - self.tank_pressure_empty_pa
+        )
+        return int(p_gauge + self.tank_pressure_vacuum_offset_pa)
 
     def publish_at_rate(self):
-        self.bcu_pressure_pub.publish(Int32(data=self.latest_pressure_pa))
+        self.bcu_pressure_pub.publish(Int32(data=self.tank_pressure_pa()))
         self.bcu_volume_pub.publish(Int32(data=self.latest_volume_ml))
 
 
