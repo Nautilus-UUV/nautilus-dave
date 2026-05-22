@@ -27,14 +27,10 @@ import os
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    ExecuteProcess,
     IncludeLaunchDescription,
     LogInfo,
     OpaqueFunction,
-    RegisterEventHandler,
-    TimerAction,
 )
-from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
@@ -78,70 +74,6 @@ def _build_robot_launch(context, *_args, **_kwargs):
                 "headless": LaunchConfiguration("headless").perform(context),
                 "description_file": description_file,
             }.items(),
-        ),
-    ]
-
-
-def _maybe_autostart(context, *_args, **_kwargs):
-    """Emit MissionCommand + start publishes if mission_autostart is true.
-
-    The `start` publish chains off the MissionCommand publisher's exit
-    (OnProcessExit) so /path always reaches pathfinding_node before
-    /command — see Issue #43.
-    """
-    autostart = LaunchConfiguration("mission_autostart").perform(context).lower() == "true"
-    if not autostart:
-        return []
-    target_pressure_pa = float(LaunchConfiguration("target_pressure_pa").perform(context))
-    angle_rad = float(LaunchConfiguration("angle_rad").perform(context))
-    n_resurfaces = int(LaunchConfiguration("n_resurfaces").perform(context))
-
-    qos_args = [
-        "--qos-reliability",
-        "reliable",
-        "--qos-durability",
-        "transient_local",
-    ]
-    mission_pub = ExecuteProcess(
-        cmd=[
-            "ros2",
-            "topic",
-            "pub",
-            "--once",
-            *qos_args,
-            "/path",
-            "nautilus_msgs/msg/MissionCommand",
-            (
-                f"{{mission_id: {_MISSION_ID_SAWTOOTH}, "
-                f"target_pressure_pa: {target_pressure_pa}, "
-                f"angle_rad: {angle_rad}, "
-                f"n_resurfaces: {n_resurfaces}}}"
-            ),
-        ],
-        output="screen",
-    )
-    start_pub = ExecuteProcess(
-        cmd=[
-            "ros2",
-            "topic",
-            "pub",
-            "--once",
-            *qos_args,
-            "/command",
-            "std_msgs/msg/String",
-            "{data: start}",
-        ],
-        output="screen",
-    )
-    return [
-        TimerAction(
-            period=8.0,
-            actions=[
-                mission_pub,
-                RegisterEventHandler(
-                    OnProcessExit(target_action=mission_pub, on_exit=[start_pub])
-                ),
-            ],
         ),
     ]
 
@@ -190,6 +122,30 @@ def generate_launch_description():
         launch_arguments={
             "scenario": scenario,
             "ekf_publish_enabled": LaunchConfiguration("ekf_publish_enabled"),
+        }.items(),
+    )
+
+    # Latched mission autostart (one long-lived publisher holding /path and the
+    # start command transient_local for the launch lifetime). Replaces the old
+    # one-shot `ros2 topic pub --once` autostart whose latched samples vanished
+    # when the publisher exited, intermittently leaving pathfinding stuck on
+    # "waiting for /path". Gated internally on mission_autostart.
+    mission_autostart_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [
+                os.path.join(
+                    FindPackageShare("py_pkg").find("py_pkg"),
+                    "launch",
+                    "mission_autostart.launch.py",
+                )
+            ]
+        ),
+        launch_arguments={
+            "mission_autostart": LaunchConfiguration("mission_autostart"),
+            "mission_id": str(_MISSION_ID_SAWTOOTH),
+            "target_pressure_pa": LaunchConfiguration("target_pressure_pa"),
+            "angle_rad": LaunchConfiguration("angle_rad"),
+            "n_resurfaces": LaunchConfiguration("n_resurfaces"),
         }.items(),
     )
 
@@ -318,6 +274,6 @@ def generate_launch_description():
             bridge_launch,
             OpaqueFunction(function=_build_robot_launch),
             control_stack_launch,
-            OpaqueFunction(function=_maybe_autostart),
+            mission_autostart_launch,
         ]
     )
