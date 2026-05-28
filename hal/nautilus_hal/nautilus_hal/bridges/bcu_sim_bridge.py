@@ -11,7 +11,7 @@ from py_pkg.uuv_ros_core import (
     create_publisher_for_topic,
     create_subscription_for_topic,
 )
-from std_msgs.msg import Float32, Float64, Int32
+from std_msgs.msg import Float32, Float64, Int16, Int32, UInt8
 
 from ..constants import Conversions, SimTopics
 from ..injectors.fault_injection import BCUFaultInjector
@@ -99,6 +99,29 @@ class BCUSimBridge(SimBridgeNode):
         )
         self.flow_pub = create_publisher_for_topic(self, UUVTopics.BCU_FLOW_RATE)
 
+        # ====================
+        # Actuator feedback ("ping back")
+        # ====================
+        # There is no sim source for valve state or pump RPM (the SDF has no
+        # valve joints or pump model), so feedback is a steady echo of the
+        # latest commanded state, mirroring the synthetic flow-rate / tank-
+        # pressure pattern. Published from publish_at_rate so they keep beating
+        # even when no command is arriving — that's what the liveness watchdog
+        # keys off. RPM echoes the fault-adjusted effective value so feedback
+        # diverges from command under an injected fault; valves echo the latest
+        # commanded bitmask, which the bridge otherwise ignores.
+        self._last_rpm = 0
+        self._last_valves = 0
+        self.valves_sub = create_subscription_for_topic(
+            self, UUVTopics.BCU_VALVES, self.valves_callback
+        )
+        self.feedback_rpm_pub = create_publisher_for_topic(
+            self, UUVTopics.BCU_FEEDBACK_RPM
+        )
+        self.feedback_valves_pub = create_publisher_for_topic(
+            self, UUVTopics.BCU_FEEDBACK_VALVES
+        )
+
         # ==============
         # BCU pressure / volume telemetry
         # ==============
@@ -133,6 +156,8 @@ class BCUSimBridge(SimBridgeNode):
 
         raw_rpm = float(msg.data)
         rpm = self.rpm_fault_injector.apply(raw_rpm)
+        # Cache the fault-adjusted effective rpm for the steady feedback echo.
+        self._last_rpm = int(rpm)
 
         # rpm -> rps -> total revs in dt -> volume change
         rps = rpm / 60.0
@@ -156,6 +181,11 @@ class BCUSimBridge(SimBridgeNode):
         flow_msg = Float32()
         flow_msg.data = rps * self.volume_per_rev_m3
         self.flow_pub.publish(flow_msg)
+
+    def valves_callback(self, msg):
+        # Cache the commanded valve bitmask (bit0=v1, bit1=v2) for the steady
+        # feedback echo. The bridge has no other use for valve commands today.
+        self._last_valves = int(msg.data)
 
     def sim_bcu_volume_callback(self, msg):
         # Seed current_volume from Gazebo's first volume report so subsequent
@@ -191,6 +221,9 @@ class BCUSimBridge(SimBridgeNode):
     def publish_at_rate(self):
         self.bcu_pressure_pub.publish(Int32(data=self.tank_pressure_pa()))
         self.bcu_volume_pub.publish(Int32(data=self.latest_volume_ml))
+        # Steady actuator-feedback heartbeats (echo of latest commanded state).
+        self.feedback_rpm_pub.publish(Int16(data=self._last_rpm))
+        self.feedback_valves_pub.publish(UInt8(data=self._last_valves))
 
 
 def main(args=None):

@@ -14,10 +14,11 @@ from py_pkg.robot_specs import ACU_ROLL_CDEG_PER_DEG
 from py_pkg.scenarios.spec.rig import SimSpec
 from py_pkg.uuv_ros_core import (
     UUVTopics,
+    create_publisher_for_topic,
     create_subscription_for_topic,
 )
 from sensor_msgs.msg import JointState
-from std_msgs.msg import Float64
+from std_msgs.msg import Float32, Float64
 
 from ..constants import Conversions, SimDebugTopics, SimTopics
 from .bridge_base import SimBridgeNode, run_bridge
@@ -84,6 +85,22 @@ class ACUSimBridge(SimBridgeNode):
             10,
         )
 
+        # ==============
+        # ACU production feedback ("ping back")
+        # ==============
+        # Unlike the /sim/* topics above, these are production-facing actuator
+        # feedback the liveness watchdog watches: a steady pitch/roll position
+        # echo proving the ACU is alive even when no command is moving it. Fed
+        # from the same Gazebo joint state. Units mirror the joint frame:
+        # offset = tilt in m, angle = roll in rad. Through the registry so type
+        # and QoS come from uuv_ros_core, unlike the manual /sim/* publishers.
+        self.feedback_offset_pub = create_publisher_for_topic(
+            self, UUVTopics.ACU_FEEDBACK_OFFSET
+        )
+        self.feedback_angle_pub = create_publisher_for_topic(
+            self, UUVTopics.ACU_FEEDBACK_ANGLE
+        )
+
         self.get_logger().info(
             f"Nautilus ACU Bridge: Listening on {UUVTopics.ACU_ROLL}"
         )
@@ -114,8 +131,10 @@ class ACUSimBridge(SimBridgeNode):
         for name, position in zip(msg.name, msg.position):
             if name == "acu_tilt_joint":
                 self.sim_pitch_pos_pub.publish(Float64(data=float(position)))
+                self.feedback_offset_pub.publish(Float32(data=float(position)))
             elif name == "acu_roll_joint":
                 self.sim_roll_pos_pub.publish(Float64(data=float(position)))
+                self.feedback_angle_pub.publish(Float32(data=float(position)))
 
 
 def main(args=None):
