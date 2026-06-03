@@ -44,12 +44,8 @@ class BCUSimBridge(SimBridgeNode):
         self.declare_parameter(
             "tank_pressure_vacuum_offset_pa", plant_def.tank_pressure_vacuum_offset_pa
         )
-        self.declare_parameter(
-            "fault_probability_per_sec", fault_def.probability_per_sec
-        )
-        self.declare_parameter("fault_duration_sec", fault_def.duration_sec)
-        self.declare_parameter("fault_degraded_factor", fault_def.degraded_factor)
-        self.declare_parameter("fault_severe_factor", fault_def.severe_factor)
+        self.declare_parameter("fault_mttf_sec", fault_def.mttf_sec)
+        self.declare_parameter("fault_num_levels", fault_def.num_levels)
         # 0 = "let `random.Random()` pick" — preserves today's
         # non-deterministic behaviour for ad-hoc sim runs. The scenario
         # compiler injects a derived seed for MC.
@@ -83,10 +79,8 @@ class BCUSimBridge(SimBridgeNode):
         self.rpm_fault_injector = BCUFaultInjector(
             self,
             fault_topic="/bcu/rpm/fault",
-            fault_probability=self.get_parameter("fault_probability_per_sec").value,
-            fault_duration_sec=self.get_parameter("fault_duration_sec").value,
-            degraded_factor=self.get_parameter("fault_degraded_factor").value,
-            severe_factor=self.get_parameter("fault_severe_factor").value,
+            mttf_sec=self.get_parameter("fault_mttf_sec").value,
+            num_levels=self.get_parameter("fault_num_levels").value,
             rng=rng,
         )
 
