@@ -136,12 +136,22 @@ npm run dev
 
 #### Pi
 
+Start the HAL:
 ```bash
-ros2 run py_pkg mqtt_bridge_node
+ros2 launch nautilus_hal bridge.launch.py
 ```
 
+Start the simulation:
 ```bash
-ros2 launch nautilus_hal trim_sim.launch.py headless:=false mission_autostart:=false
+ros2 launch dave_demos dave_robot.launch.py \
+    namespace:=glider_nautilus world_name:=dave_ocean_waves \
+    z:=-5 roll:=3.141592653589793 yaw:=1.5707963267948966 \
+    paused:=false headless:=false
+```
+
+Start control:
+```bash
+ros2 launch py_pkg control_stack.launch.py
 ```
 
 ## Branch Structure
