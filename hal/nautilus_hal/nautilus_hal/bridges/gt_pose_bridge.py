@@ -2,11 +2,10 @@
 
 Re-publishes Gazebo's ``/model/<model_name>/odometry`` (already bridged
 out by ``dave_robot_models/config/glider_nautilus/robot_config.py``) onto
-``UUVTopics.POSITION_ESTIMATION``. Lets sim tests (e.g.
-``test_trim_neutral_sim_gt``, ``test_sawtooth_sim_gt``) exercise the
-depth + ACU + pathfinding stack against perfect pose, isolating
-controller behaviour from the EKF's known orientation drift
-(``src/nautilus-ros/docs/ekf_node_issues.md``).
+``SimDebugTopics.GROUND_TRUTH_POSE`` (a privileged ``/sim/`` topic). The
+live estimator (``attitude_node``) owns ``/position/estimation``; this
+bridge runs alongside it so the Tier-3 paired test can compare the
+gravity-tilt estimator's pitch/roll against perfect truth in a single run.
 
 Spawn-frame translation: the model is spawned with non-identity
 roll/yaw (see ``trim_sim.launch.py`` etc. -- typically ``roll=pi``,
@@ -17,21 +16,21 @@ extraction (``acu_node`` does) reads ``current_roll = 180 deg`` at
 t=0 and starts fighting a phantom -180 deg roll error -- producing
 side drift and gimbal-coupled pitch readings.
 
-To match what the production EKF will deliver (orientation relative to
-the body's initial frame), this bridge captures the first odom
+To match what the production estimator (``attitude_node``) delivers
+(orientation relative to the body's initial frame), this bridge captures the first odom
 quaternion as the spawn frame and republishes every subsequent message
 as ``q_spawn^-1 * q_current`` -- the body's rotation since spawn. The
 position field is not re-zeroed (the depth controller ignores it and
 pathfinding's trim mission captures spawn x/y itself).
 
-Not for hardware -- production replaces this with the real EKF stack.
+Not for hardware -- production replaces this with the real estimator (``attitude_node``).
 """
 
+from geometry_msgs.msg import Pose
 from nav_msgs.msg import Odometry
 from py_pkg.scenarios.spec.rig import SimSpec
-from py_pkg.uuv_ros_core import UUVTopics, create_publisher_for_topic
 
-from ..constants import SimTopics
+from ..constants import SimDebugTopics, SimTopics
 from .bridge_base import SimBridgeNode, run_bridge
 
 
@@ -62,10 +61,13 @@ class GTPoseBridge(SimBridgeNode):
         self.declare_parameter("model_name", SimSpec().model_name)
         self.model_name = self.get_parameter("model_name").value
 
-        # Factory matches POSITION_ESTIMATION's UUVQoS.CONTROL profile so
-        # acu_node and pathfinding_node's existing subscriptions accept it
-        # without a durability/reliability mismatch.
-        self.pose_pub = create_publisher_for_topic(self, UUVTopics.POSITION_ESTIMATION)
+        # Privileged /sim/ diagnostic topic, not in the uuv_ros_core registry,
+        # so this is a plain publisher (reliable, depth=10 -- the Tier-3 test
+        # subscriber matches it).
+        self.gt_topic = SimDebugTopics.GROUND_TRUTH_POSE.format(
+            model_name=self.model_name
+        )
+        self.pose_pub = self.create_publisher(Pose, self.gt_topic, 10)
 
         # parameter_bridge defaults: reliable, depth=10. Match here.
         self.odom_sub = self.create_subscription(
@@ -77,8 +79,7 @@ class GTPoseBridge(SimBridgeNode):
 
         self.get_logger().info(
             f"GT pose bridge: {SimTopics.ODOMETRY.format(model_name=self.model_name)} "
-            f"-> {UUVTopics.POSITION_ESTIMATION} "
-            f"(spawn-frame translated)"
+            f"-> {self.gt_topic} (spawn-frame translated)"
         )
 
     def _on_odometry(self, msg: Odometry) -> None:
@@ -89,7 +90,7 @@ class GTPoseBridge(SimBridgeNode):
             self._spawn_q_inv = _quat_inverse(current)
             self.get_logger().info(
                 f"Captured spawn quaternion {current}; subsequent "
-                "POSITION_ESTIMATION will be relative to this frame."
+                "ground-truth pose will be relative to this frame."
             )
 
         rx, ry, rz, rw = _quat_multiply(self._spawn_q_inv, current)

@@ -1,15 +1,15 @@
 """Generic rate-limiter used only to slow topics down before bag recording.
 
 The IMU sensor (50 Hz) and the gz odometry publisher (100 Hz) legitimately
-need to run fast for the EKF and for GT comparison, so the live streams stay
+need to run fast for the estimator and for GT comparison, so the live streams stay
 untouched. This node subscribes to one of those streams, caches the latest
 message, and republishes it on a sibling topic at a fixed rate. The bag
 recorder then points at the sibling, which keeps the recorded set uniform
 with the 10 Hz BCU/external_sensor bridges.
 
 Parameters:
-    input_topic  = topic to subscribe to (e.g. ``/imu/left``)
-    output_topic = throttled topic to publish on (e.g. ``/imu/left/throttled``)
+    input_topic  = topic to subscribe to (e.g. ``/imu``)
+    output_topic = throttled topic to publish on (e.g. ``/imu/throttled``)
     rate_hz      = output publish rate
     msg_type     = fully-qualified message type, e.g. ``sensor_msgs/msg/Imu``
 """
@@ -51,7 +51,7 @@ class RecordThrottle(SimBridgeNode):
         self._latest = None
 
         # Subscribe BEST_EFFORT so we match both best-effort sensor publishers
-        # (e.g. /imu/left on SENSOR_STREAM) and reliable ones — DDS allows a
+        # (e.g. /imu on SENSOR_STREAM) and reliable ones — DDS allows a
         # best-effort request to bind to a reliable offer, but not the reverse.
         sub_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,

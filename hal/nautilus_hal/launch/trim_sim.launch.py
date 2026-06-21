@@ -4,7 +4,7 @@ Brings up everything needed to drive the simulated glider to a target gauge
 pressure and hold it there in trim:
 
     HAL bridges + Gazebo + glider robot
-        + py_pkg control_stack    (ekf_prefilter, ekf_node, depth_node,
+        + py_pkg control_stack    (imu_prefilter, attitude_node, bcu_node,
                                    acu_node, pathfinding_node)
         + optional MissionCommand + start auto-publish
 
@@ -24,14 +24,10 @@ import os
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    ExecuteProcess,
     IncludeLaunchDescription,
     LogInfo,
     OpaqueFunction,
-    RegisterEventHandler,
-    TimerAction,
 )
-from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
@@ -74,77 +70,6 @@ def _build_robot_launch(context, *_args, **_kwargs):
                 "headless": LaunchConfiguration("headless").perform(context),
                 "description_file": description_file,
             }.items(),
-        ),
-    ]
-
-
-def _maybe_autostart(context, *_args, **_kwargs):
-    """Emit MissionCommand + start publishes if mission_autostart is true.
-
-    /path and /command are UUVQoS.COMMAND (RELIABLE + TRANSIENT_LOCAL).
-    `ros2 topic pub` defaults to volatile durability, so we request
-    transient_local explicitly or pathfinding's subscription rejects on
-    a durability mismatch.
-
-    The `start` publish is chained off the MissionCommand publisher's exit
-    via OnProcessExit so /path always reaches pathfinding_node before
-    /command — independent TimerActions raced on DDS discovery order and
-    occasionally dropped the start (Issue #43).
-    """
-    autostart = (
-        LaunchConfiguration("mission_autostart").perform(context).lower() == "true"
-    )
-    if not autostart:
-        return []
-    target_pressure_pa = float(
-        LaunchConfiguration("target_pressure_pa").perform(context)
-    )
-
-    qos_args = [
-        "--qos-reliability",
-        "reliable",
-        "--qos-durability",
-        "transient_local",
-    ]
-    mission_pub = ExecuteProcess(
-        cmd=[
-            "ros2",
-            "topic",
-            "pub",
-            "--once",
-            *qos_args,
-            "/path",
-            "nautilus_msgs/msg/MissionCommand",
-            (
-                f"{{mission_id: {_MISSION_ID_TRIM}, "
-                f"target_pressure_pa: {target_pressure_pa}, "
-                f"angle_rad: 0.0, n_resurfaces: 0}}"
-            ),
-        ],
-        output="screen",
-    )
-    start_pub = ExecuteProcess(
-        cmd=[
-            "ros2",
-            "topic",
-            "pub",
-            "--once",
-            *qos_args,
-            "/command",
-            "std_msgs/msg/String",
-            "{data: start}",
-        ],
-        output="screen",
-    )
-    return [
-        TimerAction(
-            period=8.0,
-            actions=[
-                mission_pub,
-                RegisterEventHandler(
-                    OnProcessExit(target_action=mission_pub, on_exit=[start_pub])
-                ),
-            ],
         ),
     ]
 
@@ -193,7 +118,28 @@ def generate_launch_description():
         ),
         launch_arguments={
             "scenario": scenario,
-            "ekf_publish_enabled": LaunchConfiguration("ekf_publish_enabled"),
+        }.items(),
+    )
+
+    # Latched mission autostart (one long-lived publisher holding /path and the
+    # start command transient_local for the launch lifetime). Replaces the old
+    # one-shot `ros2 topic pub --once` autostart whose latched samples vanished
+    # when the publisher exited, intermittently leaving pathfinding stuck on
+    # "waiting for /path". Gated internally on mission_autostart.
+    mission_autostart_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [
+                os.path.join(
+                    FindPackageShare("py_pkg").find("py_pkg"),
+                    "launch",
+                    "mission_autostart.launch.py",
+                )
+            ]
+        ),
+        launch_arguments={
+            "mission_autostart": LaunchConfiguration("mission_autostart"),
+            "mission_id": str(_MISSION_ID_TRIM),
+            "target_pressure_pa": LaunchConfiguration("target_pressure_pa"),
         }.items(),
     )
 
@@ -250,19 +196,6 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument(
-                "ekf_publish_enabled",
-                default_value="false",
-                description=(
-                    "Forwarded to control_stack.launch.py. Defaulted off "
-                    "while the EKF is being tuned: /position/estimation "
-                    "stays silent, the depth + ACU-pitch loops keep "
-                    "running (they don't read it), and the ACU-roll loop "
-                    "sits at its init value (0 deg) and commands ~0 "
-                    "instead of railing on bad EKF output. Flip true once "
-                    "the EKF is trusted."
-                ),
-            ),
-            DeclareLaunchArgument(
                 "record",
                 default_value="false",
                 description="If true, also record HAL topics to an MCAP rosbag.",
@@ -305,6 +238,6 @@ def generate_launch_description():
             bridge_launch,
             OpaqueFunction(function=_build_robot_launch),
             control_stack_launch,
-            OpaqueFunction(function=_maybe_autostart),
+            mission_autostart_launch,
         ]
     )

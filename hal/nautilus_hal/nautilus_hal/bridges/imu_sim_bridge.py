@@ -17,8 +17,8 @@ class IMUSimBridge(SimBridgeNode):
         self.declare_parameter("model_name", SimSpec().model_name)
         self.model_name = self.get_parameter("model_name").value
 
-        self.imu_left_pub = create_publisher_for_topic(self, UUVTopics.IMU_LEFT)
-        self.imu_right_pub = create_publisher_for_topic(self, UUVTopics.IMU_RIGHT)
+        # One physical IMU -> one topic, just like the STM bridge.
+        self.imu_pub = create_publisher_for_topic(self, UUVTopics.IMU)
 
         # Gazebo IMU topic (bridged by ros_gz_bridge)
         self.sim_imu_sub = self.create_subscription(
@@ -32,15 +32,30 @@ class IMUSimBridge(SimBridgeNode):
             f"Nautilus IMU Bridge: Listening for IMU on "
             f"{SimTopics.IMU.format(model_name=self.model_name)}"
         )
-        self.get_logger().info(
-            f"Nautilus IMU Bridge: Publishing to {UUVTopics.IMU_LEFT} and {UUVTopics.IMU_RIGHT}"
-        )
+        self.get_logger().info(f"Nautilus IMU Bridge: Publishing to {UUVTopics.IMU}")
 
     def sim_imu_callback(self, msg):
-        """Bridge IMU data to UUV topics."""
-        # For simulation, we map the same single IMU to both internal logic topics
-        self.imu_left_pub.publish(msg)
-        self.imu_right_pub.publish(msg)
+        """Republish the sim IMU in the exact shape the STM emits on hardware.
+
+        The point of this bridge is parity: the downstream prefilter ->
+        attitude estimator must run unchanged in sim and on the bench. The STM
+        provides accel (specific force, gravity included) and gyro in the NED
+        body frame (x forward, y right, z down) and NO orientation (REP-145:
+        orientation_covariance[0] = -1). The Gazebo glider model is authored NED
+        too (see model.sdf), so its IMU already reports in that frame -- accel and
+        gyro pass straight through with no axis remap, exactly matching what the
+        STM's robot_specs mounting map produces on hardware. Gazebo also hands us
+        a full orientation quaternion, so we strip it here, otherwise the
+        gravity-tilt estimator would silently cheat off the simulator's
+        ground-truth attitude in sim and behave differently on hardware.
+        """
+        msg.header.frame_id = "imu"
+        msg.orientation.x = 0.0
+        msg.orientation.y = 0.0
+        msg.orientation.z = 0.0
+        msg.orientation.w = 0.0
+        msg.orientation_covariance[0] = -1.0
+        self.imu_pub.publish(msg)
 
 
 def main(args=None):
