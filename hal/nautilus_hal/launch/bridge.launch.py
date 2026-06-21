@@ -116,13 +116,13 @@ def _maybe_record(context, *_args, **_kwargs):
     # Every recorded topic is funnelled through a record_throttle node so
     # the bag has a single uniform sample rate, independent of the live
     # publish rates. Topics published only by the control stack
-    # (/acu/{pitch,roll}, /imu/filtered/left, /position/{target,estimation})
+    # (/acu/{pitch,roll}, /imu/filtered, /position/{target,estimation})
     # silently produce empty streams when bridges run standalone; that's the
     # intended soft-failure mode.
     record_rate_hz = 1.0
     record_topics = [
-        ("/imu/left", "sensor_msgs/msg/Imu"),
-        ("/imu/filtered/left", "sensor_msgs/msg/Imu"),
+        ("/imu", "sensor_msgs/msg/Imu"),
+        ("/imu/filtered", "sensor_msgs/msg/Imu"),
         ("/external/pressure", "std_msgs/msg/Int32"),
         ("/bcu/rpm", "std_msgs/msg/Int16"),
         ("/bcu/flow_rate", "std_msgs/msg/Float32"),
@@ -213,7 +213,7 @@ def generate_launch_description():
             "throttled to 1 Hz via a sibling <topic>/throttled stream so "
             "the bag has a single uniform sample rate; the live streams "
             "stay at their original rates (IMU 50 Hz, GT odom 100 Hz, "
-            "BCU/external 10 Hz) for the EKF, controllers, and "
+            "BCU/external 10 Hz) for the estimator, controllers, and "
             "GT-comparison tests."
         ),
     )

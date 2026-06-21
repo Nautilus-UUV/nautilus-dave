@@ -70,3 +70,9 @@ class SimDebugTopics:
     # Joint position in radians (matches SDF ``acu_roll_joint`` revolute
     # axis range -0.5236 to +0.5236 rad).
     ACU_ROLL_POSITION = "/sim/{model_name}/acu/roll_position_rad"
+    # Ground-truth model pose (geometry_msgs/Pose: spawn-frame-relative
+    # orientation, position in metres/world frame) republished by
+    # gt_pose_bridge. The Tier-3 paired test compares the gravity-tilt
+    # estimator's /position/estimation pitch/roll against this truth -- it is a
+    # sim diagnostic, never a production controller input.
+    GROUND_TRUTH_POSE = "/sim/{model_name}/ground_truth/pose"

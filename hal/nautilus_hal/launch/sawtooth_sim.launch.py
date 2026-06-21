@@ -6,7 +6,7 @@ target_pressure_pa, then a hard ascend at +angle_rad back to the
 surface, repeated for n_resurfaces cycles before self-terminating:
 
     HAL bridges + Gazebo + glider robot
-        + py_pkg control_stack    (ekf_prefilter, ekf_node, depth_node,
+        + py_pkg control_stack    (imu_prefilter, attitude_node, bcu_node,
                                    acu_node, pathfinding_node)
         + optional MissionCommand + start auto-publish
 
@@ -121,7 +121,6 @@ def generate_launch_description():
         ),
         launch_arguments={
             "scenario": scenario,
-            "ekf_publish_enabled": LaunchConfiguration("ekf_publish_enabled"),
         }.items(),
     )
 
@@ -216,19 +215,6 @@ def generate_launch_description():
                     "Informational: SAWTOOTH self-terminates after n_resurfaces "
                     "events, but the launch keeps the stack running so the "
                     "operator can fire another mission. Documents intent."
-                ),
-            ),
-            DeclareLaunchArgument(
-                "ekf_publish_enabled",
-                default_value="false",
-                description=(
-                    "Forwarded to control_stack.launch.py. Defaulted off "
-                    "while the EKF is being tuned: /position/estimation "
-                    "stays silent, the depth + ACU-pitch loops keep "
-                    "running (they don't read it), and the ACU-roll loop "
-                    "sits at its init value (0 deg) and commands ~0 "
-                    "instead of railing on bad EKF output. Flip true once "
-                    "the EKF is trusted."
                 ),
             ),
             DeclareLaunchArgument(
