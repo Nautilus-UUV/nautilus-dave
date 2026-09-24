@@ -10,8 +10,6 @@ Centralising the SIGINT-tolerant spin loop here is what
 ``run_bridge`` does.
 """
 
-from typing import Type
-
 import rclpy
 from py_pkg.scenarios.spec.rig import (
     CommsFaultSpec,
@@ -19,13 +17,6 @@ from py_pkg.scenarios.spec.rig import (
     PressureNoiseSpec,
     SensorFaultSpec,
 )
-from py_pkg.sensor_faults import (
-    FaultSchedule,
-    FaultyChannel,
-    MessageDrop,
-    gate_publisher,
-)
-from py_pkg.sensor_noise import GaussianQuantizedNoise, rng_from_seed
 from py_pkg.uuv_ros_core import (
     UUVTopics,
     create_publisher_for_topic,
@@ -36,6 +27,14 @@ from rclpy.exceptions import InvalidHandle
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from std_msgs.msg import Bool
+
+from ..sim_models.sensor_faults import (
+    FaultSchedule,
+    FaultyChannel,
+    MessageDrop,
+    gate_publisher,
+)
+from ..sim_models.sensor_noise import GaussianQuantizedNoise, rng_from_seed
 
 
 class SimBridgeNode(Node):
@@ -201,7 +200,7 @@ class SimBridgeNode(Node):
         return gate_publisher(create_publisher_for_topic(self, topic), self._comms_drop)
 
 
-def run_bridge(node_cls: Type[SimBridgeNode], args=None) -> None:
+def run_bridge(node_cls: type[SimBridgeNode], args=None) -> None:
     """SIGINT/SIGTERM-tolerant entrypoint shared by every bridge ``main``.
 
     Without this, launch_testing's exit-code check intermittently fails

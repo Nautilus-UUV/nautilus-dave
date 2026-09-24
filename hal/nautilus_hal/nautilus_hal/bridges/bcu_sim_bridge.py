@@ -1,4 +1,3 @@
-from py_pkg.plant_dynamics import PumpDynamics, make_tank_pressure_map, pump_flow_active
 from py_pkg.scenarios.spec.rig import (
     BcuBridgeSpec,
     BcuPumpFaultSpec,
@@ -10,6 +9,11 @@ from py_pkg.uuv_ros_core import UUVTopics, create_subscription_for_topic
 from std_msgs.msg import Float32, Float64, Int16, Int32, UInt8
 
 from ..constants import Conversions, SimDebugTopics, SimTopics
+from ..sim_models.plant_dynamics import (
+    PumpDynamics,
+    make_tank_pressure_map,
+    pump_flow_active,
+)
 from .bridge_base import SimBridgeNode, run_bridge
 
 

@@ -1,9 +1,9 @@
 from py_pkg.scenarios.spec.rig import ImuNoiseSpec, SimSpec
-from py_pkg.sensor_noise import GaussianQuantizedNoise, rng_from_seed
 from py_pkg.uuv_ros_core import UUVTopics
 from sensor_msgs.msg import Imu
 
 from ..constants import SimTopics
+from ..sim_models.sensor_noise import GaussianQuantizedNoise, rng_from_seed
 from .bridge_base import SimBridgeNode, run_bridge
 
 

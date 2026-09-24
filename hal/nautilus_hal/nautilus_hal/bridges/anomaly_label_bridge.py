@@ -48,7 +48,6 @@ Not for hardware — labels are a property of the injected scenario.
 """
 
 from nautilus_msgs.msg import AnomalyLabel
-from py_pkg.plant_dynamics import pump_flow_active
 from py_pkg.scenarios.spec.scenario import AnomalyLabelSpec
 from py_pkg.uuv_ros_core import (
     UUVTopics,
@@ -56,6 +55,7 @@ from py_pkg.uuv_ros_core import (
     create_subscription_for_topic,
 )
 
+from ..sim_models.plant_dynamics import pump_flow_active
 from .bridge_base import SimBridgeNode, run_bridge
 
 LABEL_RATE_HZ = 10.0

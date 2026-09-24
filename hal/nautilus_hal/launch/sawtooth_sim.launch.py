@@ -184,7 +184,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             [
                 os.path.join(
-                    FindPackageShare("py_pkg").find("py_pkg"),
+                    FindPackageShare("nautilus_hal").find("nautilus_hal"),
                     "launch",
                     "run_watchdog.launch.py",
                 )

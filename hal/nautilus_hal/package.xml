@@ -11,6 +11,7 @@
   <depend>std_msgs</depend>
   <depend>can_msgs</depend>
   <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
   <depend>py_pkg</depend>
   <depend>python3-jinja2</depend>
 

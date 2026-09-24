@@ -33,6 +33,7 @@ setup(
             "anomaly_label_bridge = nautilus_hal.bridges.anomaly_label_bridge:main",
             "record_throttle = nautilus_hal.bridges.record_throttle:main",
             "sim_ready_gate = nautilus_hal.sim_ready_gate:main",
+            "run_watchdog = nautilus_hal.sweep_watchdog.run_watchdog_node:main",
         ],
     },
 )
