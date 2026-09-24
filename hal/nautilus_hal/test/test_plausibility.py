@@ -39,10 +39,9 @@ def _dive_to(rp: RunPlausibility, z_from: float, z_to: float, t0: float, dt=1.0)
 
 class TestConstantsParity:
     def test_config_defaults_are_the_exported_thresholds(self):
-        # The watchdog-vs-analysis parity itself (these constants against the
-        # canonical copy in nautilus-ros scripts/analysis/sweep_loader.py) is
-        # guarded by py_pkg's Tier 3 test_watchdog_threshold_parity. What
-        # could still drift locally is a hand-typed dataclass default.
+        # Guards a hand-typed dataclass default drifting from the exported
+        # thresholds. (The copy in nautilus-ros scripts/analysis/sweep_loader.py
+        # is kept in step by hand.)
         cfg = PlausibilityConfig()
         assert cfg.min_dive_m == MIN_DIVE_M
         assert cfg.min_return_m == MIN_RETURN_M

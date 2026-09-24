@@ -191,8 +191,7 @@ class BCUSimBridge(SimBridgeNode):
 
     def rpm_callback(self, msg):
         # Cache only — the plant steps on the publish timer, so the
-        # transient keeps evolving after the last message (regression:
-        # test_bcu_bridge_feedback_decay).
+        # transient keeps evolving after the last message.
         self._commanded_rpm = float(msg.data)
 
     def valves_callback(self, msg):

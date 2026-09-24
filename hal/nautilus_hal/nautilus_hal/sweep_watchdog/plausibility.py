@@ -16,8 +16,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 # Restated from the offline classifier (nautilus-ros
-# ``scripts/analysis/sweep_loader.py``); parity-locked, and the reason for the
-# copy given, by py_pkg ``test/sim/test_watchdog_threshold_parity.py``.
+# ``scripts/analysis/sweep_loader.py``). Neither side can import the other
+# (analysis hosts have no dave checkout); change both copies together.
 MIN_DIVE_M = 2.0
 MIN_RETURN_M = 1.0
 
