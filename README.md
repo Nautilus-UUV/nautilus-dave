@@ -18,7 +18,7 @@ sudo apt install ros-jazzy-ros-gz protobuf-compiler libprotobuf-dev
 2. Clone repository:
 ```bash
 cd ~/nautilus_ws/src
-git clone -b dev git@github.com:Nautilus-UUV/dave.git
+git clone -b dev git@github.com:Nautilus-UUV/nautilus-dave.git
 ```
 3. Resolve dependencies and build:
 ```bash
@@ -59,7 +59,7 @@ ros2 launch nautilus_hal sawtooth_sim.launch.py \
 - `record:=true` to enable databag generation
 - `run_id:={ID}` to give a predefined run_id that is concatenated together with the timestamp
 - `bag_path:={PATH}` if you want to override the default data collection path
-- `scenario:={PATH}` selects the scenario YAML driving gains, plant, bridge publish rates, and fault injection. Defaults to the installed `library/nominal.yaml` (perturbation-free, fault-injection off). To turn BCU fault injection back on (MTTF ~60 s), pick `baseline.yaml`:
+- `scenario:={PATH}` selects the scenario YAML driving gains, plant, bridge publish rates, and fault injection. Defaults to the installed `library/nominal.yaml` (fault injection off, lake-fitted sensor noise on). For a persistent BCU pump fault (60% pump effectiveness for the whole run), pick `baseline.yaml`:
 
   ```bash
   scenario:=$(ros2 pkg prefix py_pkg)/share/py_pkg/scenarios/library/baseline.yaml
@@ -155,8 +155,8 @@ dave/
 
 ```bash
 # Rebuild the workspace
-cd ~/dave_ws
-colcon build --symlink-install
+cd ~/nautilus_ws
+python -m colcon build --symlink-install
 
 # Source the workspace
 source install/setup.bash

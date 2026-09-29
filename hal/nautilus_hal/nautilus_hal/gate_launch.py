@@ -37,6 +37,7 @@ def physics_probe_launch_argument() -> DeclareLaunchArgument:
         ),
     )
 
+
 # Node names composed by bridge.launch.py.
 _BRIDGE_NODES = [
     "nautilus_bcu_bridge",
