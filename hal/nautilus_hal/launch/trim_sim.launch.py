@@ -32,6 +32,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
 
+from nautilus_hal.gate_launch import physics_probe_launch_argument
+
 _MISSION_ID_TRIM = 0
 
 
@@ -65,13 +67,21 @@ def _build_robot_launch(context, *_args, **_kwargs):
                 "yaw": "1.5707963267948966",
                 "namespace": "glider_nautilus",
                 "world_name": "dave_ocean_waves",
-                "paused": "false",
+                # Paused spawn; the sim_ready_gate unpauses once the
+                # graph is complete (see sawtooth_sim.launch.py).
+                "paused": "true",
                 "gui": LaunchConfiguration("gui").perform(context),
                 "headless": LaunchConfiguration("headless").perform(context),
                 "description_file": description_file,
             }.items(),
         ),
     ]
+
+
+def _build_gate(context, *_args, **_kwargs):
+    from nautilus_hal.gate_launch import gate_actions_from_context
+
+    return gate_actions_from_context(context)
 
 
 def generate_launch_description():
@@ -140,6 +150,12 @@ def generate_launch_description():
             "mission_autostart": LaunchConfiguration("mission_autostart"),
             "mission_id": str(_MISSION_ID_TRIM),
             "target_pressure_pa": LaunchConfiguration("target_pressure_pa"),
+            # Arms bcu_node's tank-limit clamp via a latched DiveInit
+            # carrying the scenario's plant tank endpoints.
+            "scenario": LaunchConfiguration("scenario"),
+            # Hold the mission until the sim_ready_gate unpauses the
+            # (paused-spawned) world and latches /sim/ready.
+            "wait_for_sim_ready": "true",
         }.items(),
     )
 
@@ -200,6 +216,7 @@ def generate_launch_description():
                 default_value="false",
                 description="If true, also record HAL topics to an MCAP rosbag.",
             ),
+            physics_probe_launch_argument(),
             DeclareLaunchArgument(
                 "run_id",
                 default_value="trim",
@@ -237,6 +254,7 @@ def generate_launch_description():
             ),
             bridge_launch,
             OpaqueFunction(function=_build_robot_launch),
+            OpaqueFunction(function=_build_gate),
             control_stack_launch,
             mission_autostart_launch,
         ]

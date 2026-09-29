@@ -1,9 +1,10 @@
 """Sawtooth glide sim composition.
 
 Brings up everything needed to drive the simulated glider through one
-or more SAWTOOTH cycles -- a hard descend at -angle_rad to
-target_pressure_pa, then a hard ascend at +angle_rad back to the
-surface, repeated for n_resurfaces cycles before self-terminating:
+or more SAWTOOTH dives -- a hard descend at -angle_rad to
+target_pressure_pa, then a hard ascend at +angle_rad to
+shallow_pressure_pa, repeated for n_oscillations dives before a final
+ascent to the surface and self-terminating:
 
     HAL bridges + Gazebo + glider robot
         + py_pkg control_stack    (imu_prefilter, attitude_node, bcu_node,
@@ -15,11 +16,12 @@ scenario YAML — pass it as launch args:
 
     ros2 launch nautilus_hal sawtooth_sim.launch.py headless:=false \\
         mission_autostart:=true target_pressure_pa:=147150.0 \\
-        angle_rad:=0.6109 n_resurfaces:=1
+        shallow_pressure_pa:=0.0 angle_rad:=0.6109 n_oscillations:=1
 
-The mission self-terminates after `n_resurfaces` resurface events, but
-the launch keeps Gazebo and the controllers running so you can fire
-another mission from the CLI by publishing /path + /command directly.
+The mission self-terminates after `n_oscillations` dives (a final ascent
+to the surface), but the launch keeps Gazebo and the controllers running
+so you can fire another mission from the CLI by publishing /path +
+/command directly.
 """
 
 import os
@@ -34,6 +36,8 @@ from launch.actions import (
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
+
+from nautilus_hal.gate_launch import physics_probe_launch_argument
 
 
 _MISSION_ID_SAWTOOTH = 1
@@ -64,18 +68,33 @@ def _build_robot_launch(context, *_args, **_kwargs):
                 ]
             ),
             launch_arguments={
-                "z": "-5",
+                "z": LaunchConfiguration("z").perform(context),
                 "roll": "3.141592653589793",
                 "yaw": "1.5707963267948966",
                 "namespace": "glider_nautilus",
                 "world_name": "dave_ocean_waves",
-                "paused": "false",
+                # Spawn into a PAUSED world: physics must not run while
+                # nodes are still coming up (under sweep load the vehicle
+                # used to free-fall for the whole bringup). The
+                # sim_ready_gate unpauses once the graph is complete.
+                "paused": "true",
                 "gui": LaunchConfiguration("gui").perform(context),
                 "headless": LaunchConfiguration("headless").perform(context),
                 "description_file": description_file,
             }.items(),
         ),
     ]
+
+
+def _build_gate(context, *_args, **_kwargs):
+    """Compose the sim_ready_gate for this launch's actual roster.
+
+    Loaded inside an OpaqueFunction so the scenario (for model/world
+    name) and the record/watchdog/bag_path args are resolvable.
+    """
+    from nautilus_hal.gate_launch import gate_actions_from_context
+
+    return gate_actions_from_context(context)
 
 
 def generate_launch_description():
@@ -141,10 +160,39 @@ def generate_launch_description():
         ),
         launch_arguments={
             "mission_autostart": LaunchConfiguration("mission_autostart"),
-            "mission_id": str(_MISSION_ID_SAWTOOTH),
+            "mission_id": LaunchConfiguration("mission_id"),
             "target_pressure_pa": LaunchConfiguration("target_pressure_pa"),
+            "shallow_pressure_pa": LaunchConfiguration("shallow_pressure_pa"),
             "angle_rad": LaunchConfiguration("angle_rad"),
-            "n_resurfaces": LaunchConfiguration("n_resurfaces"),
+            "n_oscillations": LaunchConfiguration("n_oscillations"),
+            "n_steps": LaunchConfiguration("n_steps"),
+            # Arms bcu_node's tank-limit clamp: the scenario's plant tank
+            # endpoints ride a latched DiveInit, the sim surrogate for
+            # the operator UI's Initialize button.
+            "scenario": scenario,
+            # Hold the mission until the sim_ready_gate unpauses the
+            # (paused-spawned) world and latches /sim/ready.
+            "wait_for_sim_ready": "true",
+        }.items(),
+    )
+
+    # Sim-only run watchdog (gated on watchdog:=true): ends the run at
+    # mission completion or on a floater/sinker plausibility verdict by
+    # exiting, which shuts the whole launch down — the signal sweep
+    # runners reap on. The wall-clock --per-run-timeout stays the fallback.
+    run_watchdog_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [
+                os.path.join(
+                    FindPackageShare("nautilus_hal").find("nautilus_hal"),
+                    "launch",
+                    "run_watchdog.launch.py",
+                )
+            ]
+        ),
+        launch_arguments={
+            "watchdog": LaunchConfiguration("watchdog"),
+            "bag_path": bag_path,
         }.items(),
     )
 
@@ -182,6 +230,15 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument(
+                "shallow_pressure_pa",
+                default_value="0.0",
+                description=(
+                    "Shallow extremum in gauge Pa. 0 (default) climbs to the "
+                    "surface between dives (the legacy profile). Only used "
+                    "when mission_autostart is true."
+                ),
+            ),
+            DeclareLaunchArgument(
                 "angle_rad",
                 default_value="0.6109",
                 description=(
@@ -191,11 +248,50 @@ def generate_launch_description():
                 ),
             ),
             DeclareLaunchArgument(
-                "n_resurfaces",
+                "n_oscillations",
                 default_value="1",
                 description=(
-                    "How many full descend → ascend cycles before the mission "
-                    "self-terminates. Only used when mission_autostart is true."
+                    "How many dives between the two pressures before the "
+                    "mission ends with a final ascent to the surface. Only "
+                    "used when mission_autostart is true."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "mission_id",
+                default_value=str(_MISSION_ID_SAWTOOTH),
+                description=(
+                    "Mission profile to autostart (MissionId registry: "
+                    "1=SAWTOOTH the default, 3=STAIRCASE). Only used when "
+                    "mission_autostart is true."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "n_steps",
+                default_value="1",
+                description=(
+                    "STAIRCASE ladder steps between the surface and "
+                    "target_pressure_pa. Ignored by SAWTOOTH. Only used when "
+                    "mission_autostart is true."
+                ),
+            ),
+            DeclareLaunchArgument(
+                "watchdog",
+                default_value="false",
+                description=(
+                    "If true, a sim-only watchdog ends the run at mission "
+                    "completion or on a floater/sinker plausibility verdict "
+                    "(writes run_verdict.json next to the bag) by shutting "
+                    "the launch down. Sweep runners pass true."
+                ),
+            ),
+            physics_probe_launch_argument(),
+            DeclareLaunchArgument(
+                "z",
+                default_value="-5",
+                description=(
+                    "Spawn depth in Gazebo world Z (positive up). -5 (default) "
+                    "preserves the historical mid-column spawn; sweeps matching "
+                    "surface-launched lake dives pass e.g. -1.0."
                 ),
             ),
             DeclareLaunchArgument(
@@ -212,8 +308,8 @@ def generate_launch_description():
                 "hold",
                 default_value="false",
                 description=(
-                    "Informational: SAWTOOTH self-terminates after n_resurfaces "
-                    "events, but the launch keeps the stack running so the "
+                    "Informational: SAWTOOTH self-terminates after n_oscillations "
+                    "dives, but the launch keeps the stack running so the "
                     "operator can fire another mission. Documents intent."
                 ),
             ),
@@ -259,7 +355,13 @@ def generate_launch_description():
             ),
             bridge_launch,
             OpaqueFunction(function=_build_robot_launch),
+            # Bringup gate: verifies the whole graph (incl. the ros_gz
+            # command path and, when recording, the bag recorder) before
+            # unpausing the world and latching /sim/ready. Exits — and
+            # shuts the launch down — only on bringup failure.
+            OpaqueFunction(function=_build_gate),
             control_stack_launch,
             mission_autostart_launch,
+            run_watchdog_launch,
         ]
     )

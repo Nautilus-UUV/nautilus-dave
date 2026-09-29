@@ -25,30 +25,39 @@ def sea_pressure_pa(fluid_pressure_kpa: float) -> int:
     return int(fluid_pressure_kpa * Conversions.KPA_TO_PA)
 
 
+# record_throttle republishes every recorded stream on a sibling topic
+# carrying this suffix. The rule lives here because three places must
+# agree on it exactly: bridge.launch.py (builds the recorder's topic
+# list), record_throttle (derives its outputs), and gate_launch (whose
+# recorder sentinels ARE throttled topics -- a sentinel naming a topic
+# nobody publishes makes the gate wait out its full timeout and abort
+# every run in a sweep).
+THROTTLED_SUFFIX = "/throttled"
+
+
+def throttled(topic: str) -> str:
+    """Sibling topic that ``record_throttle`` republishes ``topic`` on."""
+    return f"{topic}{THROTTLED_SUFFIX}"
+
+
 class SimTopics:
     """Templates for Gazebo/Simulation topics."""
 
     # model_name is substituted at runtime via .format(model_name=...).
-    # ACU joint command topics must match the <topic> declared by the
-    # JointPositionController plugin in model.sdf and the parameter_bridge
-    # entries in dave_robot_models/config/glider_nautilus/robot_config.py.
-    # The SDF declares an explicit <topic> rather than relying on the
-    # gz-sim default ".../0/cmd_pos", because that default has a digit-
-    # leading path segment which ROS 2 topic-name validation rejects.
     BUOYANCY_VOLUME_STATE = "/model/{model_name}/buoyancy_engine/current_volume"
     BUOYANCY_COMMAND = "/model/{model_name}/buoyancy_engine"
-    ACU_ROLL_COMMAND = "/model/{model_name}/joint/acu_roll_joint/cmd_pos"
-    ACU_TILT_COMMAND = "/model/{model_name}/joint/acu_tilt_joint/cmd_pos"
     SEA_PRESSURE = "/model/{model_name}/sea_pressure"
     IMU = "/model/{model_name}/imu"
     # Ground-truth model pose, bridged out of Gazebo by
     # dave_robot_models/config/glider_nautilus/robot_config.py:16.
     # Sim-only — production controllers must not depend on this.
     ODOMETRY = "/model/{model_name}/odometry"
-    # Gazebo-side joint state, bridged to ROS by parameter_bridge in
-    # dave_robot_models/config/glider_nautilus/robot_config.py. world_name and
-    # model_name are substituted at runtime.
-    JOINT_STATE = "/world/{world_name}/model/{model_name}/joint_state"
+    # gz-side (NOT ros_gz-bridged) control on HeaveAugmentPlugin: Boolean
+    # true freezes the entry-momentum trigger. Published by sim_ready_gate
+    # around its physics-liveness probe, whose deliberate sink would
+    # otherwise fire the leg-entry servo. Deliberately outside
+    # uuv_ros_core — same rationale as every other SimTopics entry.
+    HEAVE_ENTRY_SUPPRESS = "/model/{model_name}/heave_augment/entry_suppress"
 
 
 class SimDebugTopics:
@@ -64,15 +73,16 @@ class SimDebugTopics:
     """
 
     # model_name is substituted at runtime via .format(model_name=...).
-    # Joint position republished from sensor_msgs/JointState in metres
-    # (matches SDF ``acu_tilt_joint`` prismatic axis range 0 to -0.1195 m).
-    ACU_PITCH_POSITION = "/sim/{model_name}/acu/pitch_position_m"
-    # Joint position in radians (matches SDF ``acu_roll_joint`` revolute
-    # axis range -0.5236 to +0.5236 rad).
-    ACU_ROLL_POSITION = "/sim/{model_name}/acu/roll_position_rad"
     # Ground-truth model pose (geometry_msgs/Pose: spawn-frame-relative
     # orientation, position in metres/world frame) republished by
     # gt_pose_bridge. The Tier-3 paired test compares the gravity-tilt
     # estimator's /position/estimation pitch/roll against this truth -- it is a
     # sim diagnostic, never a production controller input.
     GROUND_TRUTH_POSE = "/sim/{model_name}/ground_truth/pose"
+
+    # BCU pump-fault provenance (std_msgs/Float32): the constant
+    # effectiveness the bcu_sim_bridge scales commanded RPM by, so bags
+    # stay self-describing about the actuator fault. Predates the /sim/
+    # prefix — keeps the legacy name so recorded-bag streams stay
+    # comparable across sweeps. Never comms-gated.
+    BCU_PUMP_FAULT = "/bcu/rpm/fault"

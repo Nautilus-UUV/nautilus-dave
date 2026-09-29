@@ -11,21 +11,19 @@
     <link name="base_link">
       <inertial>
 
-        <!-- Pose of the Centre of Mass in the NED base_link frame
-             This comes from the Technical_Details spreadsheet (22.04.)
-             without the contribution from ACU and oil mass -->
+        <!-- CoM in the NED base_link frame.
+             x/y: Technical_Details spreadsheet (22.04), excl. ACU + oil.
+             z: manually fitted to the 2026-06-24 lake test. The
+             spreadsheet's +0.013 gave a BG lever of only ~11 mm (3x too
+             soft in pitch); +0.043 gives BG ~34 mm, reproducing dive-4's
+             steady -19.5 deg descent and the recorded leg velocities. -->
 
-        <pose>0.066 0 0.013 0 0 0</pose>
+        <pose>0.066 0 0.043 0 0 0</pose>
 
-        <!-- Moment of inertia matrix
-             Taken around the Centre of Mass in the NED coordinate system.
-             The values come from the HS25_Master_Assembly_Nautilus (as of 04.04.26)
-             and contain the contributions of all parts except:
-             * The moving parts of the Pitch ACU
-             * The moving parts of the Roll ACU
-             * The Blade of the rudder 
-             Since the Onshape assmebly did likely not include the oil mass, it is not
-             part of the moments of inertia matrix -->
+        <!-- Moment of inertia about the CoM (NED). From the
+             HS25_Master_Assembly_Nautilus Onshape (04.04.26). Excludes
+             the moving pitch/roll ACU parts, the rudder blade, and the
+             oil mass. -->
 
         <inertia>
           <ixx>0.569665165</ixx>
@@ -36,6 +34,7 @@
           <izz>7.738</izz>
         </inertia>
 
+        <!-- Added mass: analytic estimate. -->
         <fluid_added_mass>
           <xx>{{ added_mass_xx | sdf_num }}</xx>
           <yy>{{ added_mass_yy | sdf_num }}</yy>
@@ -45,10 +44,8 @@
           <rr>{{ added_mass_rr | sdf_num }}</rr>
         </fluid_added_mass>
 
-        <!-- Mass from the Technical_Details spreadsheet
-             This does not include:
-             * Movable ACU masses
-             * Oil mass -->
+        <!-- Mass from the Technical_Details spreadsheet; excludes
+             movable ACU masses and the oil mass. -->
 
         <mass>44.637</mass>
         
@@ -73,16 +70,11 @@
       </visual>
 
       <collision name="base_link_collision">
-        <!-- This determines the buoyancy of the hull
-             Specifically, this is the volume displaced by the hull shell and
-             the two bulkheads when assembled into one geometric object. Looking
-             at the geometry in the HS25_Master_Assembly_Nautilus, this should be
-             about 0.054482 m^3.
-             The NED coordinate system is at the geometric centre of the hull
-             so the buoyancy forces from the hull coincide with the origin.
-             The buoyancy plugin only supports collision geometries made of boxes
-             and spheres. The volume is modelled as a box with a volume of about
-             0.0544 m^3 centred at the origin. -->
+        <!-- Hull buoyancy volume: displacement of the hull shell + two
+             bulkheads, ~0.054482 m^3 from the HS25_Master_Assembly_Nautilus
+             geometry. Modelled as a box (the buoyancy plugin only supports
+             boxes/spheres) centred at the NED hull origin, so hull buoyancy
+             acts through the origin. -->
         <pose>0.0 0 0 0 0 0</pose>
         <geometry>
           <box>
@@ -115,8 +107,9 @@
       filename="gz-sim-hydrodynamics-system"
       name="gz::sim::systems::Hydrodynamics">
       <link_name>base_link</link_name>
-      <water_density>1025.0</water_density>
-      <!-- Added mass -->
+      <!-- Fresh water (2026-06-24 lake test environment). -->
+      <water_density>{{ fluid_density | sdf_num }}</water_density>
+      <!-- Added mass: handled by base_link <fluid_added_mass>; zeroed here. -->
       <xDotU>0</xDotU>
       <yDotV>0</yDotV>
       <zDotW>0</zDotW>
@@ -130,8 +123,8 @@
       <mDotQ>27</mDotQ>
       <nDotR>32</nDotR> -->
 
-      <!-- Linear Drag Coefficients -->
-      <!-- diagonal terms -->
+      <!-- Linear drag diagonals. zW: lake-fitted (2026-06-24 heave
+           calibration). xU/yV/kP/mQ/nR: strip-theory estimates. -->
       <xU>{{ drag_xU | sdf_num }}</xU>
       <yV>{{ drag_yV | sdf_num }}</yV>
       <zW>{{ drag_zW | sdf_num }}</zW>
@@ -144,15 +137,49 @@
       <mW>37</mW>
       <nV>-34</nV-->
 
-      <!-- Quadratic Drag Coefficients -->
-      <xUabsU>0</xUabsU>
-      <yVabsV>0</yVabsV>
-      <zWabsW>0</zWabsW>
-      <kPabsP>0</kPabsP>
-      <mQabsQ>0</mQabsQ>
-      <nRabsR>0</nRabsR>
+      <!-- Quadratic drag diagonals. zWabsW: lake-fitted with zW
+           (2026-06-24 heave calibration); the rest are zero. -->
+      <xUabsU>{{ drag_xUabsU | sdf_num }}</xUabsU>
+      <yVabsV>{{ drag_yVabsV | sdf_num }}</yVabsV>
+      <zWabsW>{{ drag_zWabsW | sdf_num }}</zWabsW>
+      <kPabsP>{{ drag_kPabsP | sdf_num }}</kPabsP>
+      <mQabsQ>{{ drag_mQabsQ | sdf_num }}</mQabsQ>
+      <nRabsR>{{ drag_nRabsR | sdf_num }}</nRabsR>
     </plugin>
-    
+
+    <!-- Heave-fidelity corrections calibrated to the 2026-06-24 lake test
+         (nominal dives 2/4). zW/zWabsW MUST mirror the Hydrodynamics block
+         above — both render from the same rig.hydrodynamics values, which
+         keeps biofouling drag multipliers consistent between the two.
+         retain_fraction: fraction of heave drag retained on ascent, fitted
+         to the dive-2/4 ascent legs (the descent-anchored symmetric fit
+         over-damps ascent ~35%); 1.0 disables. peak_speed: target 5 s
+         box-smoothed entry-descent rate peak in m/s (dive 2 measured
+         0.225, dive 4 0.184); 0 disables. -->
+    <plugin
+      filename="HeaveAugmentPlugin"
+      name="dave_gz_model_plugins::HeaveAugmentPlugin">
+      <link_name>base_link</link_name>
+      <zW>{{ drag_zW | sdf_num }}</zW>
+      <zWabsW>{{ drag_zWabsW | sdf_num }}</zWabsW>
+      <ascent_drag_relief>
+        <retain_fraction>{{ ascent_relief.retain_fraction | sdf_num }}</retain_fraction>
+        <min_ascent_speed>0.01</min_ascent_speed>
+      </ascent_drag_relief>
+      <entry_momentum>
+        <peak_speed>{{ entry.peak_speed_mps | sdf_num }}</peak_speed>
+        <rise_time>{{ entry.rise_time_s | sdf_num }}</rise_time>
+        <decay_time>{{ entry.decay_time_s | sdf_num }}</decay_time>
+        <trigger_depth>0.3</trigger_depth>
+        <trigger_speed>0.03</trigger_speed>
+        <trigger_hold>2</trigger_hold>
+        <rearm_speed>0.01</rearm_speed>
+        <rearm_hold>5</rearm_hold>
+        <servo_gain>1000</servo_gain>
+        <max_force>60</max_force>
+      </entry_momentum>
+    </plugin>
+
     <!--              -->
     <!-- TRIMMING BOW -->
     <!--              -->
@@ -163,13 +190,34 @@
     <joint name="trimming_bow_joint" type="fixed">
       <pose>0.65 0 0 0 0 0</pose>
       <parent>base_link</parent>
-      <child>trimming_bow</child>0 0 0 
+      <child>trimming_bow</child>
     </joint>
 
     <link name="trimming_bow">
 
       <pose>0.65 0 0 0 0 0</pose>
-      
+
+      <!-- Mass budget (2026-06-24 lake calibration): SDF defaults any
+           link without an explicit <mass> to 1.0 kg. Seven links relied
+           on that, inflating true vehicle mass to ~59.73 kg. imu_link and
+           battery_link now carry their real (near-phantom) masses (the
+           devices are in base_link's inertial); the fins/rudder keep the
+           implicit 1.0 kg by design.
+
+           The bow/stern foams are the two pitch-trim knobs, fitted to
+           meet both lake constraints at once:
+             * total mass 59.1700 kg -> fresh-water neutral bladder
+               volume V_n = 2.097e-3 m^3 (heave calibration), and
+             * CoM_x = buoyancy centroid at the spawn bladder volume
+               (0.0022 m^3) -> floats LEVEL at the surface (-0.5 deg,
+               dive-4 IMU).
+           Bow-heavy deflation then pitches nose-down on descent, up on
+           ascent, passively. Retrim through these two masses (sum fixed
+           to preserve V_n), never through base_link's inertial. -->
+      <inertial>
+        <mass>{{ trim_mass_bow | sdf_num }}</mass>
+      </inertial>
+
       <collision name="bow_trimming_foam_collision">
         <pose>0 0 0 0 0 0</pose>
         <geometry>
@@ -221,7 +269,9 @@
       <pose>-0.7 0 0 0 0 0</pose>
 
       <inertial>
-        <mass>0.01</mass>
+        <!-- Stern half of the pitch-trim pair — see the mass-budget
+             note on trimming_bow. -->
+        <mass>{{ trim_mass_stern | sdf_num }}</mass>
       </inertial>
 
       <visual name="stern_trimming_foam_visual">
@@ -286,11 +336,14 @@
       <child>LeftFin_link</child>
     </joint>
 
+    <!-- Fin & rudder lift/drag: airfoil-theory / literature values,
+         shared by both fins and the rudder (only <area> differs:
+         0.0725 m^2 fins, 0.0244 m^2 rudder). -->
     <plugin
       filename="gz-sim-lift-drag-system"
       name="gz::sim::systems::LiftDrag">
-      <air_density>1025</air_density>
-      <cla>{{ left_fin.cla | sdf_num }}</cla> 
+      <air_density>{{ fluid_density | sdf_num }}</air_density>
+      <cla>{{ left_fin.cla | sdf_num }}</cla>
       <cla_stall>{{ left_fin.cla_stall | sdf_num }}</cla_stall>
       <cda>{{ left_fin.cda | sdf_num }}</cda>
       <cda_stall>{{ left_fin.cda_stall | sdf_num }}</cda_stall>
@@ -353,7 +406,7 @@
     <plugin
       filename="gz-sim-lift-drag-system"
       name="gz::sim::systems::LiftDrag">
-      <air_density>1025</air_density>
+      <air_density>{{ fluid_density | sdf_num }}</air_density>
       <cla>{{ right_fin.cla | sdf_num }}</cla>
       <cla_stall>{{ right_fin.cla_stall | sdf_num }}</cla_stall>
       <cda>{{ right_fin.cda | sdf_num }}</cda>
@@ -462,7 +515,7 @@
     <plugin
       filename="gz-sim-lift-drag-system"
       name="gz::sim::systems::LiftDrag">
-      <air_density>1025</air_density>
+      <air_density>{{ fluid_density | sdf_num }}</air_density>
       <cla>{{ top_rudder.cla | sdf_num }}</cla>
       <cla_stall>{{ top_rudder.cla_stall | sdf_num }}</cla_stall>
       <cda>{{ top_rudder.cda | sdf_num }}</cda>
@@ -483,6 +536,12 @@
     <link name="bladder_link">
       <!-- Pose of bladder link in base link frame-->
       <pose>0.6 0 0 0 0 0</pose>
+      <!-- Explicit mass (was the implicit SDF default of 1.0 kg); the
+           second centerline trim knob — see the mass-budget note on
+           trimming_bow. -->
+      <inertial>
+        <mass>{{ trim_mass_bladder | sdf_num }}</mass>
+      </inertial>
       <visual name="bladder_link_visual">
         <geometry>
           <sphere>
@@ -536,10 +595,13 @@
       <link_name>bladder_link</link_name>
       <max_inflation_rate>0.0001</max_inflation_rate>
       <min_volume>0.0</min_volume>
-      <max_volume>0.0025</max_volume>engine
+      <max_volume>0.0025</max_volume>
       <neutral_volume>0.0</neutral_volume>
-      <default_volume>0.00125</default_volume>
-      <fluid_density>1025.0</fluid_density>
+      <!-- Spawn slightly above the lake-calibrated neutral bladder
+           volume (2.097e-3 m^3) so the vehicle floats gently at rest,
+           mirroring the real pre-dive surface float. -->
+      <default_volume>{{ bladder_spawn_volume_m3 | sdf_num }}</default_volume>
+      <fluid_density>{{ fluid_density | sdf_num }}</fluid_density>
       <surface>0</surface>
       <namespace>glider_nautilus</namespace>
     </plugin>
@@ -551,7 +613,10 @@
     <link name="imu_link">
       <inertial>
         <pose>0 0 0 0 0 0</pose>
-        <!-- <mass>0.015</mass> -->
+        <!-- Real device mass. Was the implicit 1.0 kg default until the
+             2026-06-24 lake calibration moved that phantom kg into the
+             trim foams — see the mass-budget note on trimming_bow. -->
+        <mass>0.015</mass>
         <inertia>
           <ixx>0.00001</ixx>
           <ixy>0.0</ixy>
@@ -584,9 +649,11 @@
     <!--         -->
 
     <link name='battery_link'>
-      <!-- Inertial properties of static battery accounted for in the
-           inertial properties of the base link  -->
-      <!-- <inertial>
+      <!-- Battery inertia is in base_link's inertial. Was the implicit
+           1.0 kg default until the 2026-06-24 lake calibration made this
+           phantom mass explicit — see the mass-budget note on
+           trimming_bow. -->
+      <inertial>
         <pose>0 0 0 0 0 0</pose>
         <mass>0.001</mass>
         <inertia>
@@ -597,7 +664,7 @@
           <iyz>0</iyz>
           <izz>1e-05</izz>
         </inertia>
-      </inertial> -->
+      </inertial>
       <battery name='battery'>
         <voltage>4.2</voltage>
       </battery>
@@ -617,8 +684,9 @@
 
     <link name='acu_tilt_link'>
 
-      <!-- Pitch ACU weight starts in the middle -->
-      <pose>-0.32525 0 -0.0438 0 0 0</pose>
+      <!-- ACU removed from sim: this mass is now static, parked at the
+           mid-point of the former prismatic travel ([-0.1195, 0] m) -> x = -0.385. -->
+      <pose>-0.385 0 -0.0438 0 0 0</pose>
 
       <inertial>
         <!-- <pose relative_to="acu_tilt_joint">0 0 0 0 0 0</pose> -->
@@ -649,27 +717,11 @@
       </visual>
     </link>
 
-    <joint name='acu_tilt_joint' type='prismatic'>
-      <!-- Updated according to spreadsheet on 22.04. -->
+    <joint name='acu_tilt_joint' type='fixed'>
+      <!-- ACU pitch mass-shifter removed: joint fixed at the mid-travel pose. -->
       <pose>-0.385 0 -0.0438 0 0 0</pose>
       <parent>base_link</parent>
       <child>acu_tilt_link</child>
-      <axis>
-        <xyz>1 0 0</xyz>
-        <!-- <dynamics>
-          <damping>20</damping>
-          <friction>5</friction>
-        </dynamics> -->
-        <limit>
-          <!-- Limits in the joints own coordinate system. Range is
-               [-0.1195, 0] m: lower < upper as Gazebo expects, with the
-               extended position at -0.1195 and the closed position at 0. -->
-          <lower>-0.1195</lower> <!-- Minimum position (in meters) -->
-          <upper>0</upper>       <!-- Maximum position (in meters) -->
-          <effort>10000.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
-          <velocity>0.011</velocity> <!-- Maximum velocity (optional, in meters/second) -->
-        </limit>
-      </axis>
     </joint>
 
     <!-- ROLL ACU -->
@@ -713,61 +765,16 @@
 
     </link>
 
-    <joint name='acu_roll_joint' type='revolute'>
-      <!-- Updated according to spreadsheet on 22.04. -->
+    <joint name='acu_roll_joint' type='fixed'>
+      <!-- ACU roll mass removed: joint fixed at the neutral (0 rad) pose. -->
       <pose>-0.428 0 0.034 0 0 0</pose> <!--Where the pivot is-->
       <parent>base_link</parent>
       <child>acu_roll_link</child>
-      <axis>
-        <xyz>1 0 0</xyz>
-        <limit>
-          <lower>-0.5236</lower> <!-- Minimum position (in radians) -->
-          <upper>0.5236</upper>  <!-- Maximum position (in radians) -->
-          <effort>10000.0</effort> <!-- Maximum effort (optional, in newton-meters) -->
-          <velocity>0.022</velocity> <!-- Maximum velocity (optional, in meters/second) -->
-        </limit>
-      </axis>
     </joint>
 
-    <!-- ACU pitch (prismatic, 1.83 kg, range [-0.1195, 0] m).
-         <topic> is mandatory here: the plugin's default
-         "/model/<m>/joint/<j>/0/cmd_pos" has a path segment ("0") that
-         starts with a digit, which ROS 2 topic-name validation rejects,
-         so parameter_bridge cannot bridge it. The SDF therefore spells
-         out the actual contract topic; this is not a "rebind for the
-         bridge", it is the SDF *declaring* what name to use because
-         the plugin default is unreachable from ROS.
-         Gains tuned for the prismatic mass: defaults of p=1/i=0.1/d=0.01
-         produce ~0.05 N for a 50 mm error, which is not enough to
-         drive the joint within reasonable settling time. cmd_max/min
-         clamp to the SDF effort limit. -->
-    <plugin
-      filename="gz-sim-joint-position-controller-system"
-      name="gz::sim::systems::JointPositionController">
-      <joint_name>acu_tilt_joint</joint_name>
-      <topic>/model/glider_nautilus/joint/acu_tilt_joint/cmd_pos</topic>
-      <p_gain>30000</p_gain>
-      <i_gain>0</i_gain>
-      <d_gain>3000</d_gain>
-      <!-- cmd_max/min must match (or stay below) the SDF joint <effort>
-           cap above. Wave forcing at z=-3 spawn pushes ~1000 N on the
-           mass-shifter axis, so we need substantially more headroom to
-           hold a steady-state position against it. -->
-      <cmd_max>10000</cmd_max>
-      <cmd_min>-10000</cmd_min>
-    </plugin>
-
-    <plugin
-      filename="gz-sim-joint-position-controller-system"
-      name="gz::sim::systems::JointPositionController">
-      <joint_name>acu_roll_joint</joint_name>
-      <topic>/model/glider_nautilus/joint/acu_roll_joint/cmd_pos</topic>
-      <p_gain>50</p_gain>
-      <i_gain>0</i_gain>
-      <d_gain>5</d_gain>
-      <cmd_max>10000</cmd_max>
-      <cmd_min>-10000</cmd_min>
-    </plugin>
+    <!-- ACU removed: the pitch/roll masses above are now static (fixed joints);
+         their JointPositionController plugins are gone. The vehicle's only
+         actuator is the BCU BuoyancyEngine. -->
 
     <plugin
       filename="gz-sim-linearbatteryplugin-system"

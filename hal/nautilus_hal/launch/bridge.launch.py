@@ -34,7 +34,7 @@ def _default_scenario_path() -> str:
 def _wire_bridges(context, *_args, **_kwargs):
     # Loaded inside OpaqueFunction so LaunchConfiguration is resolvable.
     from py_pkg.scenarios.compile import (
-        params_for_acu_bridge,
+        params_for_anomaly_label,
         params_for_bcu_bridge,
         params_for_external_sensor_bridge,
         params_for_imu_bridge,
@@ -58,21 +58,23 @@ def _wire_bridges(context, *_args, **_kwargs):
             executable="external_sensor_sim_bridge",
             name="nautilus_external_sensor_bridge",
             output="screen",
-            parameters=[params_for_external_sensor_bridge(rig)],
+            parameters=[params_for_external_sensor_bridge(rig, parent_seed)],
         ),
         Node(
             package="nautilus_hal",
             executable="imu_sim_bridge",
             name="nautilus_imu_bridge",
             output="screen",
-            parameters=[params_for_imu_bridge(rig)],
+            parameters=[params_for_imu_bridge(rig, parent_seed)],
         ),
+        # Per-timestamp ground-truth anomaly label (Scenario.anomaly).
+        # Own node so no fault/comms gate can silence the label stream.
         Node(
             package="nautilus_hal",
-            executable="acu_sim_bridge",
-            name="nautilus_acu_bridge",
+            executable="anomaly_label_bridge",
+            name="nautilus_anomaly_label_bridge",
             output="screen",
-            parameters=[params_for_acu_bridge(rig)],
+            parameters=[params_for_anomaly_label(scenario)],
         ),
     ]
 
@@ -103,15 +105,21 @@ def _maybe_record(context, *_args, **_kwargs):
         bag_path = "/".join(parts)
 
     # Ground-truth odometry comes straight off Gazebo via the parameter
-    # bridge in dave_robot_models; the /sim/{model}/acu/*_position_* pair
-    # is published by acu_sim_bridge as the joint-state GT counterpart.
+    # bridge in dave_robot_models.
+    from nautilus_hal.constants import SimDebugTopics, throttled
     from py_pkg.scenarios.loader import load_scenario
+    from py_pkg.uuv_ros_core import TOPIC_MESSAGE_MAP, UUVTopics
 
     scenario = load_scenario(LaunchConfiguration("scenario").perform(context))
     model_name = scenario.rig.sim.model_name
     gt_odom_topic = f"/model/{model_name}/odometry"
-    gt_acu_pitch_topic = f"/sim/{model_name}/acu/pitch_position_m"
-    gt_acu_roll_topic = f"/sim/{model_name}/acu/roll_position_rad"
+
+    def _registry_entry(topic):
+        # record_throttle wants the "pkg/msg/Type" string; derive it from
+        # the registry's message class so a registry rename can't silently
+        # desync the bag from the live topics.
+        msg_cls = TOPIC_MESSAGE_MAP[topic]
+        return topic, f"{msg_cls.__module__.split('.')[0]}/msg/{msg_cls.__name__}"
 
     # Every recorded topic is funnelled through a record_throttle node so
     # the bag has a single uniform sample rate, independent of the live
@@ -121,47 +129,50 @@ def _maybe_record(context, *_args, **_kwargs):
     # intended soft-failure mode.
     record_rate_hz = 1.0
     record_topics = [
-        ("/imu", "sensor_msgs/msg/Imu"),
-        ("/imu/filtered", "sensor_msgs/msg/Imu"),
-        ("/external/pressure", "std_msgs/msg/Int32"),
-        ("/bcu/rpm", "std_msgs/msg/Int16"),
-        ("/bcu/flow_rate", "std_msgs/msg/Float32"),
-        ("/bcu/pressure", "std_msgs/msg/Int32"),
-        ("/bcu/rpm/fault", "std_msgs/msg/Int32"),
-        ("/acu/pitch", "std_msgs/msg/Int16"),
-        ("/acu/roll", "std_msgs/msg/Int16"),
-        ("/position/target", "geometry_msgs/msg/Pose"),
-        ("/position/estimation", "geometry_msgs/msg/Pose"),
+        _registry_entry(UUVTopics.IMU),
+        _registry_entry(UUVTopics.IMU_FILTERED),
+        _registry_entry(UUVTopics.EXTERNAL_PRESSURE),
+        _registry_entry(UUVTopics.BCU_RPM),
+        _registry_entry(UUVTopics.BCU_FEEDBACK_RPM),
+        _registry_entry(UUVTopics.BCU_VALVES),
+        _registry_entry(UUVTopics.BCU_FEEDBACK_VALVES),
+        _registry_entry(UUVTopics.BCU_FLOW_RATE),
+        _registry_entry(UUVTopics.BCU_PRESSURE),
+        # Per-timestamp ground-truth anomaly labels (anomaly_label_bridge).
+        _registry_entry(UUVTopics.ANOMALY_LABEL),
+        # Sim-only streams with no registry entry: the BCU bridge's
+        # pump-fault effectiveness telemetry (constant Float32) and
+        # Gazebo's model-scoped ground-truth odometry.
+        (SimDebugTopics.BCU_PUMP_FAULT, "std_msgs/msg/Float32"),
+        _registry_entry(UUVTopics.ACU_PITCH),
+        _registry_entry(UUVTopics.ACU_ROLL),
+        _registry_entry(UUVTopics.POSITION_TARGET),
+        _registry_entry(UUVTopics.POSITION_ESTIMATION),
         (gt_odom_topic, "nav_msgs/msg/Odometry"),
-        (gt_acu_pitch_topic, "std_msgs/msg/Float64"),
-        (gt_acu_roll_topic, "std_msgs/msg/Float64"),
     ]
 
-    throttle_nodes = []
-    throttled_topic_names = []
-    for input_topic, msg_type in record_topics:
-        output_topic = f"{input_topic}/throttled"
-        throttled_topic_names.append(output_topic)
-        # ROS node names must be valid identifiers — turn slashes into
-        # underscores and strip the leading one so /bcu/rpm/fault becomes
-        # record_throttle_bcu_rpm_fault.
-        node_suffix = input_topic.strip("/").replace("/", "_")
-        throttle_nodes.append(
-            Node(
-                package="nautilus_hal",
-                executable="record_throttle",
-                name=f"record_throttle_{node_suffix}",
-                output="screen",
-                parameters=[
-                    {
-                        "input_topic": input_topic,
-                        "output_topic": output_topic,
-                        "rate_hz": record_rate_hz,
-                        "msg_type": msg_type,
-                    }
-                ],
-            )
+    # ONE throttle process hosts every stream (parallel-array params) —
+    # per-topic processes were 17 extra DDS participants per run, enough
+    # to melt Fast DDS reader creation under a many-slot sweep stampede.
+    # The node derives its own output names from the shared `throttled`
+    # rule, so only the inputs and their types cross the parameter wire.
+    input_topics = [topic for topic, _ in record_topics]
+    throttled_topic_names = [throttled(topic) for topic in input_topics]
+    throttle_nodes = [
+        Node(
+            package="nautilus_hal",
+            executable="record_throttle",
+            name="nautilus_record_throttle",
+            output="screen",
+            parameters=[
+                {
+                    "input_topics": input_topics,
+                    "msg_types": [msg_type for _, msg_type in record_topics],
+                    "rate_hz": record_rate_hz,
+                }
+            ],
         )
+    ]
 
     # Sweep orchestrators pass `none` and compress the closed bag after each reap instead.
     bag_compression = (
