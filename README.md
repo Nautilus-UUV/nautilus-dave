@@ -1,5 +1,6 @@
 # DAVE - Nautilus-UG Fork
 
+TODO: the `dev` branch is the stable branch with the up to date code
 
 This is the Nautilus-UG fork of DAVE (Aquatic Robotic Simulator) containing custom configurations for the Glider Nautilus robot.
 
