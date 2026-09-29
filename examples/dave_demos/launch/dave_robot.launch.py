@@ -1,8 +1,11 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.actions import (
+    DeclareLaunchArgument,
+    IncludeLaunchDescription,
+    OpaqueFunction,
+)
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -15,6 +18,7 @@ def launch_setup(context, *args, **kwargs):
     verbose = LaunchConfiguration("verbose")
     namespace = LaunchConfiguration("namespace")
     world_name = LaunchConfiguration("world_name")
+    description_file = LaunchConfiguration("description_file")
     x = LaunchConfiguration("x")
     y = LaunchConfiguration("y")
     z = LaunchConfiguration("z")
@@ -33,6 +37,11 @@ def launch_setup(context, *args, **kwargs):
     else:
         gz_args = [world_name]
 
+    # Display control is owned by `headless` alone. `gui` is kept in the
+    # arg list for backwards compatibility but must always be `"true"` —
+    # repurposing `gui=false` for headless silently broke the gz spawn
+    # path in the past, which is why this file no longer gates gz startup
+    # on it.
     if headless.perform(context) == "true":
         gz_args.append(" -s")
     if paused.perform(context) == "false":
@@ -41,7 +50,9 @@ def launch_setup(context, *args, **kwargs):
         gz_args.append(" -v ")
         gz_args.append(verbose.perform(context))
 
-    # Include the first launch file
+    # Always include the gz_sim launch — `-s` (added above) selects
+    # server-only when `gui=false`. Previously this was gated on
+    # `IfCondition(gui)`, which skipped Gazebo entirely in headless mode.
     gz_sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -57,10 +68,14 @@ def launch_setup(context, *args, **kwargs):
         launch_arguments=[
             ("gz_args", gz_args),
         ],
-        condition=IfCondition(gui),
     )
 
-    # Include the second launch file with model name
+    # description_file is always forwarded — its default mirrors
+    # upload_robot.launch.py's canonical path so the existing flow is
+    # bit-identical when no parent overrides. We can't conditionally
+    # skip forwarding here: LaunchContext inheritance would still leak
+    # this launch's value into upload_robot.launch.py and stomp on its
+    # default.
     robot_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [
@@ -77,6 +92,7 @@ def launch_setup(context, *args, **kwargs):
             "gui": gui,
             "use_sim_time": use_sim_time,
             "namespace": namespace,
+            "description_file": description_file,
             "x": x,
             "y": y,
             "z": z,
@@ -170,6 +186,24 @@ def generate_launch_description():
             "use_ned_frame",
             default_value="false",
             description="Flag to indicate whether to use the north-east-down frame",
+        ),
+        DeclareLaunchArgument(
+            "description_file",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("dave_robot_models"),
+                    "description",
+                    LaunchConfiguration("namespace"),
+                    "model.sdf",
+                ]
+            ),
+            description=(
+                "Absolute path to the SDF to spawn. Defaults to the "
+                "canonical model.sdf in dave_robot_models' share dir. "
+                "HAL sim launches override this with a Jinja-rendered "
+                "sample variant when the scenario YAML carries a "
+                "rig.hydrodynamics block."
+            ),
         ),
     ]
 

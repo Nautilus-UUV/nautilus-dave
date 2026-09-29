@@ -20,6 +20,7 @@ def generate_launch_description():
     gui = LaunchConfiguration("gui")
     use_sim_time = LaunchConfiguration("use_sim_time")
     namespace = LaunchConfiguration("namespace")
+    description_file = LaunchConfiguration("description_file")
     x = LaunchConfiguration("x")
     y = LaunchConfiguration("y")
     z = LaunchConfiguration("z")
@@ -27,6 +28,19 @@ def generate_launch_description():
     pitch = LaunchConfiguration("pitch")
     yaw = LaunchConfiguration("yaw")
     use_ned_frame = LaunchConfiguration("use_ned_frame")
+
+    # Default: the canonical SDF in this package's share dir. Override
+    # `description_file:=...` to spawn a Jinja-rendered sample variant
+    # (see nautilus_hal/render_sdf.py); the file is read directly by
+    # ros_gz_sim's `create` executable so any well-formed SDF path works.
+    default_description_file = PathJoinSubstitution(
+        [
+            FindPackageShare("dave_robot_models"),
+            "description",
+            namespace,
+            "model.sdf",
+        ]
+    )
 
     args = [
         DeclareLaunchArgument(
@@ -43,6 +57,15 @@ def generate_launch_description():
             "namespace",
             default_value="",
             description="Namespace",
+        ),
+        DeclareLaunchArgument(
+            "description_file",
+            default_value=default_description_file,
+            description=(
+                "Absolute path to the SDF to spawn. Defaults to "
+                "<share>/dave_robot_models/description/<namespace>/model.sdf. "
+                "Override to spawn a Jinja-rendered sample variant."
+            ),
         ),
         DeclareLaunchArgument(
             "x",
@@ -81,15 +104,6 @@ def generate_launch_description():
         ),
     ]
 
-    description_file = PathJoinSubstitution(
-        [
-            FindPackageShare("dave_robot_models"),
-            "description",
-            namespace,
-            "model.sdf",
-        ]
-    )
-
     tf2_spawner = Node(
         package="tf2_ros",
         executable="static_transform_publisher",
@@ -103,12 +117,18 @@ def generate_launch_description():
             "world",
             "--child_frame_id",
             "world_ned",
+            # North East Down frame:
+            # North to true North, East along longitude line, Down axis: towards centre of earth
         ],
         output="both",
         condition=IfCondition(use_ned_frame),
         parameters=[{"use_sim_time": use_sim_time}],
     )
 
+    # Spawn the robot into Gazebo whether or not the GUI is up — `ros_gz_sim
+    # create` talks to the gz server (which exists in headless mode too).
+    # Previously gated on `IfCondition(gui)`, which silently skipped the spawn
+    # in headless mode and left the world empty (no IMU, no buoyancy plugin).
     gz_spawner = Node(
         package="ros_gz_sim",
         executable="create",
@@ -131,7 +151,6 @@ def generate_launch_description():
             yaw,
         ],
         output="both",
-        condition=IfCondition(gui),
         parameters=[{"use_sim_time": use_sim_time}],
     )
 

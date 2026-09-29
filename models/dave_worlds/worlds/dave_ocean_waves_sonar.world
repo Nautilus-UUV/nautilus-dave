@@ -112,20 +112,13 @@
       </uri>
     </include>
 
-    <!-- First Cylinder Sonar Tank -->
-    <include>
-      <name>cylinder_sonar_tank_1</name>
-      <uri>https://fuel.gazebosim.org/1.0/hmoyen/models/Cylinder Sonar Tank</uri>
-      <pose>0 0 -2 0 0 0</pose>
-    </include>
+  <include>
+    <uri>
+    https://fuel.gazebosim.org/1.0/hmoyen/models/Sunken Ship Distorted
+    </uri>
+    <pose>15 2 -16 0 0 1</pose>
 
-    <!-- Second Cylinder Sonar Tank -->
-    <include>
-      <name>cylinder_sonar_tank_2</name>
-      <uri>https://fuel.gazebosim.org/1.0/hmoyen/models/Cylinder Sonar Tank</uri>
-      <pose>0 2 -2 0 0 0</pose>
-    </include>
-
+  </include>
 
     <!-- Heightmap -->
     <include>
