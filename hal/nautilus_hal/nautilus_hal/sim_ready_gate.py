@@ -134,7 +134,7 @@ _GZ_SERVICE_TIMEOUT_S = 5.0
 # executor: while Gazebo is still loading the world every probe would
 # otherwise burn 5 s of a single-threaded spin. Cap it well short so a
 # not-yet-ready sim costs a cheap miss instead of a stalled poll.
-_GZ_MODEL_LIST_TIMEOUT_S = 2.0
+_GZ_MODEL_LIST_TIMEOUT_S = 6.0
 # Unpause is idempotent but not free (one `gz` ruby fork per call). Once
 # it succeeds we stop asking; until then we retry on a slow cadence with
 # a hard cap, rather than re-forking on every poll for the whole timeout.
