@@ -50,6 +50,17 @@ def _build_robot_launch(context, *_args, **_kwargs):
     A scenario without a `rig.hydrodynamics:` block round-trips to the
     canonical model.sdf so this code path is bit-identical to today's
     launch for nominal/baseline.
+
+    [Wrapped in an OpaqueFunction because the SDF path depends on Python 
+        logic (description_file_for_scenario) that needs the scenario path 
+        as a concrete string. 
+
+        Launch substitutions aren’t resolved until launch time, 
+        so the function defers the rendering step until context 
+        is available and scenario can be perform()’d. 
+
+        The resulting path is then passed to dave_robot.launch.py along with the 
+        spawn arguments.]
     """
     from nautilus_hal.render_sdf import description_file_for_scenario
 
@@ -91,6 +102,17 @@ def _build_gate(context, *_args, **_kwargs):
 
     Loaded inside an OpaqueFunction so the scenario (for model/world
     name) and the record/watchdog/bag_path args are resolvable.
+
+    [Wrapped in an OpaqueFunction because the SDF path depends on Python 
+        logic (description_file_for_scenario) that needs the scenario path 
+        as a concrete string. 
+
+        Launch substitutions aren’t resolved until launch time, 
+        so the function defers the rendering step until context 
+        is available and scenario can be perform()’d. 
+
+        The resulting path is then passed to dave_robot.launch.py along with the 
+        spawn arguments.]
     """
     from nautilus_hal.gate_launch import gate_actions_from_context
 
