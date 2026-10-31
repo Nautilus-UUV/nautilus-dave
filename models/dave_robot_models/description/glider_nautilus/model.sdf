@@ -19,17 +19,19 @@
 
     <!-- BASE CYLINDER -->
     <link name="base_link">
+      <!-- Rotate the cylinder's local axis horizontal while retaining the model/world NED frame. -->
+      <pose>0 0 0 0 1.5707963 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
-        <!-- 29.0 kg base + 2.0 kg internal = 31.0 kg (under 31.41 kg displacement) -->
-        <mass>29.0</mass>
+        <!-- 51.0 kg base + 2.0 kg internal = 53.0 kg displacement -->
+        <mass>50.22</mass>
         <inertia>
-          <ixx>2.5248</ixx>
+          <ixx>4.3968</ixx>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
-          <iyy>2.5248</iyy>
+          <iyy>4.3968</iyy>
           <iyz>0.0</iyz>
-          <izz>0.1471</izz>
+          <izz>0.4236</izz>
         </inertia>
       </inertial>
 
@@ -37,7 +39,7 @@
       <collision name="collision">
         <geometry>
           <box>
-            <size>0.17725 0.17725 1.0</size>
+            <size>0.2302173 0.2302173 1.0</size>
           </box>
         </geometry>
       </collision>
@@ -46,7 +48,7 @@
       <visual name="visual">
         <geometry>
           <cylinder>
-            <radius>0.1</radius>
+            <radius>0.1298862</radius>
             <length>1.0</length>
           </cylinder>
         </geometry>
@@ -58,21 +60,23 @@
     </link>
 
     <!-- INTERNAL MOVING MASS -->
-    <link name="internal_mass_link">
+    <link name="ACU_pitch_link">
+      <!-- Position the ACU relative to the model frame; the joint moves it along X. -->
+      <pose>-0.32525 0 -0.0438 0 0 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
-        <mass>2.0</mass>
+        <mass>2.78</mass>
         <inertia>
-          <ixx>0.002</ixx>
+          <ixx>0.00278</ixx>
           <ixy>0</ixy>
           <ixz>0</ixz>
-          <iyy>0.002</iyy>
+          <iyy>0.00278</iyy>
           <iyz>0</iyz>
-          <izz>0.002</izz>
+          <izz>0.00278</izz>
         </inertia>
       </inertial>
       
-      <visual name="mass_visual">
+      <visual name="ACU_pitch_visual">
         <geometry>
           <sphere>
             <radius>0.05</radius>
@@ -85,14 +89,14 @@
       </visual>
     </link>
 
-    <joint name="mass_slider_joint" type="prismatic">
+    <joint name="ACU_pitch_joint" type="prismatic">
       <parent>base_link</parent>
-      <child>internal_mass_link</child>
+      <child>ACU_pitch_link</child>
       <axis>
-        <xyz>0 0 1</xyz>
+        <xyz>1 0 0</xyz>
         <limit>
-          <lower>-0.40</lower>  <!-- z = -0.40 (bottom) -->
-          <upper>0.40</upper>   <!-- z = -0.10 (top) -->
+          <lower>-0.05975</lower>
+          <upper>0.05975</upper>
           <effort>500</effort>
           <velocity>2.0</velocity>
         </limit>
@@ -105,12 +109,12 @@
 
     <plugin filename="gz-sim-joint-position-controller-system"
             name="gz::sim::systems::JointPositionController">
-      <joint_name>mass_slider_joint</joint_name>
+      <joint_name>ACU_pitch_joint</joint_name>
       <p_gain>200.0</p_gain>
-      <i_gain>1.0</i_gain>
+      <i_gain>5.0</i_gain>
       <d_gain>40.0</d_gain>
-      <i_max>10</i_max>
-      <i_min>-10</i_min>
+      <i_max>50</i_max>
+      <i_min>-50</i_min>
       <cmd_max>500</cmd_max>
       <cmd_min>-500</cmd_min>
     </plugin>
