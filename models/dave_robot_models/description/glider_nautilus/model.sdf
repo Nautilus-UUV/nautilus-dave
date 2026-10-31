@@ -23,15 +23,16 @@
       <pose>0 0 0 0 1.5707963 0</pose>
       <inertial>
         <pose>0 0 0 0 0 0</pose>
-        <!-- 46.02 kg base + 2.78 kg pitch mass + 4.2 kg roll mass = 53.0 kg displacement -->
-        <mass>46.02</mass>
+        <!-- 43.844 kg base + 2.78 kg pitch mass + 4.2 kg roll mass
+             + 2.175 kg oil + 0.001 kg bladder link = 53.0 kg displacement -->
+        <mass>43.844</mass>
         <inertia>
-          <ixx>4.0291</ixx>
+          <ixx>3.8385834</ixx>
           <ixy>0.0</ixy>
           <ixz>0.0</ixz>
-          <iyy>4.0291</iyy>
+          <iyy>3.8385834</iyy>
           <iyz>0.0</iyz>
-          <izz>0.3882</izz>
+          <izz>0.3698335</izz>
         </inertia>
       </inertial>
 
@@ -158,14 +159,124 @@
       </axis>
     </joint>
 
+    <!-- INFLATABLE BLADDER -->
+    <link name="bladder_link">
+      <pose>0.6 0 0 0 0 0</pose>
+      <inertial>
+        <mass>0.001</mass>
+        <!-- Solid 50 mm sphere: I = 2/5 m r^2 about its centre. -->
+        <inertia>
+          <ixx>0.000001</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>0.000001</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.000001</izz>
+        </inertia>
+      </inertial>
+      <visual name="bladder_visual">
+        <geometry>
+          <sphere>
+            <radius>0.05</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <ambient>0.0 0.0 1.0 1.0</ambient>
+          <diffuse>0.0 0.0 1.0 0.5</diffuse>
+          <specular>0.0 0.0 1.0 0.5</specular>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="bladder_joint" type="fixed">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>bladder_link</child>
+    </joint>
+
+    <plugin
+      filename="gz-sim-buoyancy-engine-system"
+      name="gz::sim::systems::BuoyancyEngine">
+      <link_name>bladder_link</link_name>
+      <max_inflation_rate>0.0001</max_inflation_rate>
+      <min_volume>0.0</min_volume>
+      <max_volume>0.0025</max_volume>
+      <neutral_volume>0.0</neutral_volume>
+      <default_volume>0.0</default_volume>
+      <fluid_density>1000</fluid_density>
+      <surface>0</surface>
+      <namespace>glider_nautilus</namespace>
+    </plugin>
+
+    <!-- OIL TRANSFER MASS -->
+    <link name="oil_transfer_link">
+      <!-- Position zero of the prismatic joint at the tank endpoint. -->
+      <pose>0.225 0 0.036 0 0 0</pose>
+      <inertial>
+        <!-- 2.5 L at relative density 0.87 gives an oil mass of 2.175 kg. -->
+        <mass>2.175</mass>
+        <inertia>
+          <ixx>0.001392</ixx>
+          <ixy>0.0</ixy>
+          <ixz>0.0</ixz>
+          <iyy>0.001392</iyy>
+          <iyz>0.0</iyz>
+          <izz>0.001392</izz>
+        </inertia>
+      </inertial>
+      <visual name="oil_transfer_visual">
+        <geometry>
+          <sphere>
+            <radius>0.04</radius>
+          </sphere>
+        </geometry>
+        <material>
+          <ambient>1.0 0.8 0.0 1.0</ambient>
+          <diffuse>1.0 0.8 0.0 0.7</diffuse>
+        </material>
+      </visual>
+    </link>
+
+    <joint name="oil_transfer_joint" type="prismatic">
+      <pose>0 0 0 0 0 0</pose>
+      <parent>base_link</parent>
+      <child>oil_transfer_link</child>
+      <axis>
+        <!-- Unit vector from tank (0.225, 0, 0.036) to bladder (0.6, 0, 0). -->
+        <xyz>0.995423608 0 -0.095560666</xyz>
+        <limit>
+          <lower>0.0</lower>
+          <upper>0.376724037</upper>
+          <effort>1000</effort>
+          <velocity>2.0</velocity>
+        </limit>
+        <dynamics>
+          <damping>0.0</damping>
+          <friction>0.0</friction>
+        </dynamics>
+      </axis>
+    </joint>
+
+    <plugin filename="gz-sim-joint-position-controller-system"
+            name="gz::sim::systems::JointPositionController">
+      <joint_name>oil_transfer_joint</joint_name>
+      <p_gain>100.0</p_gain>
+      <i_gain>10.0</i_gain>
+      <d_gain>35.0</d_gain>
+      <i_max>50</i_max>
+      <i_min>-50</i_min>
+      <cmd_max>1000</cmd_max>
+      <cmd_min>-1000</cmd_min>
+    </plugin>
+
     <plugin filename="gz-sim-joint-position-controller-system"
             name="gz::sim::systems::JointPositionController">
       <joint_name>ACU_pitch_joint</joint_name>
-      <p_gain>200.0</p_gain>
-      <i_gain>5.0</i_gain>
-      <d_gain>40.0</d_gain>
-      <i_max>50</i_max>
-      <i_min>-50</i_min>
+      <p_gain>300.0</p_gain>
+      <i_gain>10.0</i_gain>
+      <d_gain>20.0</d_gain>
+      <i_max>100</i_max>
+      <i_min>-100</i_min>
       <cmd_max>500</cmd_max>
       <cmd_min>-500</cmd_min>
     </plugin>
